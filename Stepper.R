@@ -32,7 +32,7 @@ Stepper$do <- function(.,data){
   #Do stepwise selection of terms
   null = glm(as.formula(paste(as.character(.$variable),'~1')),data=data,family=.$family)
   .$summary =  data.frame(Term="-",AIC=null$aic,N=length(null$residuals),DF=0,Deviance=null$deviance,R2=0.0,SDSR=NA,MASR=NA,stringsAsFactors=F)
-  .$indices = data.frame(fyear=sort(unique(data$fyear))
+  .$indices = data.frame(fyear=sort(unique(data$fyear)))
   #Keeper functions records each stepLast
   extractCoeffs = function(model,name){
     coeffs = summary(model)$coeff

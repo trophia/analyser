@@ -89,17 +89,18 @@ dataAgg = aggregater$do(dataComb)
 import('Corer.R')
 corer = Corer$proto(
   ##Define the minimum number of trips per year and number of qualifying years for a vessel to be considered 'core'.
-  ##If not defined, then plot will be shown and you will be prompted for these variables. You can then define these for subsequent runs.
-  trips = 10,
-  years = 3
+  ##If not defined, then plot will be shown and you will be prompted for these variables. 
+  ##You can then define these for subsequent runs.
+  #trips = 10,
+  #years = 3
 )
 dataCore = corer$do(dataAgg)
 
 #Stepwise generalised linear model selection
 import('Stepper.R')
 logStepper = Stepper$proto(
-  variable = expression(log(catch)),
-  family = gaussian(link='identity'),
+  variable = expression(catch),
+  family = gaussian(link='log'),
   terms = expression(fyear+month+zone+target+vessel+poly(log(num),3)+poly(log(duration),3))
 )
 logModel = logStepper$do(subset(dataCore,catch>0))
@@ -116,6 +117,9 @@ import('Diagnoser.R')
 logDiagnoser = Diagnoser$proto(model = logModel)
 binDiagnoser = Diagnoser$proto(model = binModel)
 
+#influencer = Influencer$proto()
+#influencer$do(logModel)
+
 #Calculate CPUE indices in a variety of ways
 import('Indexer.R')
 indexer = Indexer$proto(
@@ -125,12 +129,10 @@ indexer = Indexer$proto(
     ,north = subset(dataCore,area %in% c('041','042'))
   ),
   effort = 'num',
-  lognormal = logModel,
-  binomial = binModel
+  lognormal = logModel
+  #binomial = binModel
 )
-
-#influencer = Influencer$proto()
-#influencer$do(model)
+indexer$do()
 
 #Report everything
 import('Reporter.R')
@@ -140,7 +142,8 @@ reporter = Reporter$proto(
     loader,adder,deriver,subsetter,combiner,aggregater,
     corer,
     logStepper,logDiagnoser,
-    binStepper,binDiagnoser,
+    #binStepper,binDiagnoser,
+    #influencer,
     indexer
   )
 )

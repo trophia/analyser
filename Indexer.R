@@ -36,5 +36,5 @@ Indexer$report <- function(.,to=""){
   if(!is.null(.$indices)){
     .$table(.$indices,"CPUE indices",to=to)
   }
-  else cat("Not do()ne",file=to)
+  else cat("Not done",file=to)
 }

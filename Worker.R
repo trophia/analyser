@@ -2,7 +2,7 @@ library(proto)
 
 Worker <- proto()
 
-Worker$table = function(.,data,caption="",header=names(data),to=""){
+Worker$table = function(.,data,caption="",header=names(data),folder='.',to=""){
       cat("<p><b>Table: ",caption,"</b></p>\n<table>",sep='',file=to)
       cat(paste("<tr><th>",paste(header,collapse="</th><th>"),"</th></tr>\n"),file=to)
       #Format each column based on data type
@@ -18,15 +18,15 @@ Worker$table = function(.,data,caption="",header=names(data),to=""){
       cat("</table><br>\n",file=to)
 }
 
-Worker$figure = function(.,name,caption,to=""){
+Worker$figure = function(.name,caption,folder='.',to=""){
   #Create a PNG file for report
-  filename = paste(name,".png",sep="")
+  filename = paste(folder,name,".png",sep="")
   dimensions = par("din") * par("cra") / par("cin") 
   dev.print(png,filename=filename,width=dimensions[1],height=dimensions[2])
   cat("<img src='",filename,"'>\n",sep="",file=to)
   cat("<p><b>Figure :",caption,"</b></p>\n",file=to)
   #Also copy to PDF for better graphics
-  dev.copy2pdf(file=paste(name,".pdf",sep=""))
+  dev.copy2pdf(file=paste(folder,name,".pdf",sep=""))
 }
 
 Worker$view = function(.){

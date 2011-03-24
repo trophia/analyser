@@ -1,10 +1,11 @@
 library(proto)
 
 Diagnoser <- Worker$proto(
+  label = "Diagnoser",
   model = NULL
 )
 
-Diagnoser$lognormal <- function(.){
+Diagnoser$lognormal <- function(.,to){
   obs = log(.$model$data$catch)#!todo assumes log(catch)variable
   fits = fitted(.$model)
   resids = rstandard(.$model)
@@ -27,7 +28,7 @@ Diagnoser$lognormal <- function(.){
 	  Bottom left: quantile-quantile plot of standardised residuals.
 	  Top right: fitted values versus standardised residuals.
 	  Bottom right: observed values versus fitted values.
-  ") 
+  ",to=to) 
 
   #!todo Other diagnostics not implemented
   if(FALSE){
@@ -68,8 +69,9 @@ Diagnoser$lognormal <- function(.){
 }
 
 Diagnoser$report <- function(.,to=""){
+  .$header(c(),to=to)
   if(!is.null(.$model)){
-    if(.$model$family$family=='gaussian') .$lognormal()
-    else if(.$model$family$family=='binomial') .$binomial()
+    if(.$model$family$family=='gaussian') .$lognormal(to=to)
+    else if(.$model$family$family=='binomial') .$binomial(to=to)
   }
 }

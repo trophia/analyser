@@ -1,6 +1,7 @@
 library(proto)
 
 Adder <- Worker$proto(
+  label = "Adder",
   files = NULL #The filename for the additional data
 )
 
@@ -25,7 +26,7 @@ Adder$do <- function(.,data){
 }
 
 Adder$report <- function(.,to=""){
-  cat("<h1>Adder</h1>",file=to)
+  .$header(c('files','done'),to=to)
   for(file in names(.$done)){
     details = .$done[[file]]
     cat("<h2>",file,"</h2>",file=to)

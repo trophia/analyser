@@ -1,6 +1,5 @@
-library(proto)
-
-Aggregater <- proto(
+Aggregater <- Worker$proto(
+  label = "Aggregater",
   by = NULL,
   first = NULL,
   sum = NULL,
@@ -18,16 +17,37 @@ Aggregater$do <- function(.,data){
     if(!is.null(.$sum)) levels = cbind(levels,aggregate(data[,.$sum],by,sum,na.rm=T)[,.$sum])
     if(!is.null(.$mean)) levels = cbind(levels,aggregate(data[,.$mean],by,mean,na.rm=T)[,.$mean])
     #Return aggregated data
-    return(levels)
+    data = levels
   }
+  #Create summary
+  .$summary = ddply(data,.(fyear),function(sub) data.frame(
+    strata=nrow(sub),
+    vessels=length(unique(sub$vessel)),
+    trips=length(unique(sub$trip)),
+    catch=sum(sub$catch,na.rm=T)/1000,
+    effort_number=sum(sub$num,na.rm=T),
+    effort_duration=sum(sub$duration,na.rm=T),
+    percent_zero=sum(sub$catch<=0,na.rm=T)/nrow(sub)*100,
+    events=sum(sub$events,na.rm=T),
+    events_per_strata = sum(sub$events,na.rm=T)/nrow(sub),
+    strata_pos = sum(sub$catch>0,na.rm=T),
+    trips_pos = length(unique(subset(sub,catch>0)$trip)),
+    effort_number_pos = sum(subset(sub,catch>0)$num,na.rm=T),
+    effort_duration_pos = sum(subset(sub,catch>0)$duration,na.rm=T)
+  ))
   #Return data
   return(data)
 }
 
 Aggregater$report <- function(.,to=""){
-  cat("<h1>Aggregater</h1>",file=to)
-  cat("<p>By : ",paste(.$by,collapse=","),"</p>",file=to)
-  cat("<p>First : ",paste(.$first,collapse=","),"</p>",file=to)
-  cat("<p>Sum : ",paste(.$sum,collapse=","),"</p>",file=to)
-  cat("<p>Mean : ",paste(.$mean,collapse=","),"</p>",file=to)
+  .$header(c('by','first','sum','mean'),to=to)
+  .$table(
+    .$summary,
+    'Summary of data_agg (data_sub after aggregation) by fishing year.',
+    c('Fishing year','Strata','Vessels','Trips','Catch (t)','Effort num','Effort duration (hrs)',
+      'Zero catch<br>(landed,% records)','Events','Events per stratum',
+      'Strata (+ve)','Trips (+ve)',
+      'Effort num (+ve)','Effort duration (+ve)'),
+    to=to
+  )
 }

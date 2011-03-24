@@ -1,11 +1,11 @@
-library(proto)
-
-Combiner <- proto(
+Combiner <- Worker$proto(
+  label = "Combiner",
   thresh = 0.01,
   levels = NULL,
   others = NULL
 )
 
+globalTableFunc = table
 Combiner$do <- function(.,data){
   for(name in names(data)){
     if(is.character(data[,name])){
@@ -15,7 +15,7 @@ Combiner$do <- function(.,data){
       }
       else if(!is.null(.$thresh)){
 	#Determine the sorted proportional frequency on each value and group those levels that are less than .$thresh into 'Other'
-	freq = sort(table(data[,name]),decreasing=T)
+	freq = sort(globalTableFunc(data[,name]),decreasing=T)
 	freq = freq/sum(freq)
 	others = names(freq[freq<.$thresh])
 	data[data[,name] %in% others,name] = 'Other'
@@ -35,8 +35,5 @@ Combiner$do <- function(.,data){
 }
 
 Combiner$report <- function(.,to=""){
-  cat("<h1>Combiner</h1>",file=to)
-  cat("<p>Default threshold proportion (thresh): ",.$thresh,"</p>",file=to)
-  cat("<h2>Specified levels (levels)</h2>",file=to)
-  for(name in names(.$levels)) cat("<p>",name,": ",paste(.$levels[[name]],collapse=","),"</p>",file=to)
+  .$header(c('thresh','levels'),to=to)
 }

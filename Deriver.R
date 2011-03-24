@@ -1,6 +1,7 @@
 library(proto)
 
 Deriver <- Worker$proto(
+  label = "Deriver",
   func = NULL
 )
 
@@ -20,12 +21,11 @@ Deriver$do <- function(.,data){
   #Run custom function
   if(!is.null(.$func)) data = within(data,eval(.$func))
   #Ensure catch is in function
-  if(!'catch' %in% names(data)) error("An expression for catch has not been defined")
+  if((!'catch' %in% names(data))|(!'effort' %in% names(data))) stop(simpleError("An expression for both catch and effort must be defined"))
   #Return data
   data
 }
 
 Deriver$report <- function(.,to=""){
-  cat("<h1>Deriver</h1>",file=to)
-  cat("<p>Function:",as.character(.$func),"</p>",file=to)
+  .$header(to=to)
 }

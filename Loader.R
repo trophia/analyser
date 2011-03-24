@@ -1,6 +1,5 @@
-library(proto)
-
 Loader <- Worker$proto(
+  label = "Loader",
   file = 'cpue.txt' #The filename for the data
 )
 
@@ -51,14 +50,33 @@ Loader$do <- function(.){
   for(field in names(data)){
     if(!(field %in% names(fields))) data[,field] = as.numeric(data[,field])
   }
-  #Exclude records where cpueno==1
-  data = subset(data,is.na(cpueno)|cpueno==0)
+  #Fishing year is converted to character codes
+  #data = within(data,{
+  # fyear = paste(substr(as.character(fyear-1),3,4),substr(as.character(fyear),3,4),sep='/')
+  #})
+  #Create summary
+  .$summary = ddply(data,.(fyear),function(sub) data.frame(
+      events=nrow(sub),
+      vessels=length(unique(sub$vessel)),
+      trips=length(unique(sub$trip)),
+      effort_number=sum(sub$num,na.rm=T),
+      effort_duration=sum(sub$duration,na.rm=T),
+      cpueno=sum(sub$cpueno,na.rm=T)
+  ))
   #Return data
   data
 }
 
 Loader$report <- function(.,to=""){
-  cat("<h1>Loader</h1>",file=to)
-  cat("<p>File : ",.$file,"</p>",file=to)
+  .$header(c('file'),to=to)
+
+  .$table(
+    .$summary,
+    caption = 'Summary of the the data read in by fishing year.',
+    header = c('Fishing year','Events','Vessels','Trips',
+	      'Effort number','Effort duration (hrs)',
+	      'Records not suitable for CPUE analysis due to effort grooming'),
+    to=to
+  )
 }
 

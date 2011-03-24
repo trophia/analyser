@@ -1,6 +1,5 @@
-library(proto)
-
 Stepper <- Worker$proto(
+  label = "Stepper",
   variable = expression(catch),
   family = gaussian(link='identity'),
   terms = expression(fyear),
@@ -93,10 +92,7 @@ Stepper$do <- function(.,data){
 }
 
 Stepper$report <- function(.,to=""){
-  cat("<h1>Stepper</h1>",file=to)
-  cat("<p>Variable:",as.character(.$variable),file=to)
-  cat("<p>Family: ",.$family$family,"(link=",.$family$link,")",file=to,sep='')
-  cat("<p>Terms:",as.character(.$terms),file=to)
+  .$header(c("variable","family","terms","r2thresh"),to=to)
 
   cat("<h2>Stepwise selection<h2>",file=to)
   .$table(.$summary,"Summary of stepwise selection. Model terms are listed in the order of accdeptance to the model.AIC: Akaike Information Criterion, R2: Proportion of deviance explained. Final: Whether or not variable was included in final model.",to=to)

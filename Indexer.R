@@ -1,5 +1,3 @@
-library(proto)
-
 Indexer <- Worker$proto(
   data = NULL,
   models = NULL

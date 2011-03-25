@@ -9,7 +9,7 @@ Stepper <- Worker$proto(
 Stepper$do <- function(.,data){
   #Clean data by removing records which have NAs or a indefinite (e.g. log(0)) for any terms
   .$cleaning = data.frame(Term=NA,NAs=NA,LogZeros=NA,stringsAsFactors=F)
-  dataClean = data
+  .$dataClean = data
   #Split terms expression into individual terms.
   terms = strsplit(as.character(.$terms),'[ ]*\\+[ ]*')[[1]]
   for(term in terms){
@@ -17,16 +17,16 @@ Stepper$do <- function(.,data){
       #Extract the field name form the term
       field = gsub("(log|poly|,[ ]*[0123456789]+)|\\(|\\)","",term)
       #Remove records where the field is NA
-      dataClean = dataClean[!is.na(dataClean[,field]),]
+      .$dataClean = .$dataClean[!is.na(.$dataClean[,field]),]
       #If the term involves a log then remove records where the field is <0
       logged = length(grep(paste('log\\(',field,'\\)',sep=''),term))>0
-      if(logged) dataClean = dataClean[dataClean[,field]>0,]
+      if(logged) .$dataClean = .$dataClean[.$dataClean[,field]>0,]
       #Add to cleaning summary
       .$cleaning = rbind(.$cleaning,c(Term=term,NAs=sum(is.na(data[,field])),LogZeros=if(logged)sum(data[,field]<=0) else '-'))
     }
   }
   .$cleaning = .$cleaning[-1,]
-  data = dataClean
+  data = .$dataClean
 
   #Do stepwise selection of terms
   null = glm(as.formula(paste(as.character(.$variable),'~1')),data=data,family=.$family)
@@ -86,8 +86,11 @@ Stepper$do <- function(.,data){
     }
   }
   
+  #Create final model
+  .$finalFormula = as.formula(paste(as.character(.$variable),'~fyear+',paste(finalTerms,collapse='+')))
+  .$final = glm(.$finalFormula,data=data,family=.$family)
+
   #Return the final model
-  .$final = glm(as.formula(paste(as.character(.$variable),'~fyear+',paste(finalTerms,collapse='+'))),data=data,family=.$family)
   .$final
 }
 

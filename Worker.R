@@ -1,7 +1,7 @@
 library(proto)
 library(plyr)
 library(reshape)
-
+library(gtools)
 library(ggplot2)
 theme_set(theme_bw())
 theme_update(
@@ -34,7 +34,7 @@ Worker$header = function(.,attrs=NULL,to=""){
 }
 
 Worker$table = function(.,data,caption="",header=names(data),folder='.',to=""){
-    cat("<p><b>Table: ",caption,"</b></p>\n<table>",sep='',file=to)
+    cat("<p><b>",caption,"</b></p>\n<table>",sep='',file=to)
     cat(paste("<tr><th>",paste(header,collapse="</th><th>"),"</th></tr>\n"),file=to)
     #Format each column based on data type
     formatted = data.frame(Ignore=1:nrow(data))
@@ -55,7 +55,7 @@ Worker$figure = function(.,name,caption,folder='.',to=""){
   dimensions = par("din") * par("cra") / par("cin") 
   dev.print(png,filename=filename,width=dimensions[1],height=dimensions[2])
   cat("<img src='",filename,"'>\n",sep="",file=to)
-  cat("<p><b>Figure :",caption,"</b></p>\n",file=to)
+  cat("<p><b>",caption,"</b></p>\n",file=to)
   #Also copy to PDF for better graphics
   dev.copy2pdf(file=paste(folder,"/",name,".pdf",sep=""))
 }

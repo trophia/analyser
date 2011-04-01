@@ -12,6 +12,22 @@ Comparer$do <- function(.){
   }
 }
 
+Comparer$comparisonPlot <- function(.){
+  with(.$merged,{
+    plot(NULL,NULL,xlim=range(fyear),ylim=c(0,max(.$merged[,2:ncol(.$merged)],na.rm=T)),ylab='CPUE Index',xlab='Fishing year')
+    labels = vector()
+    pchs = 1:10
+    cols = rep(1,10)
+    num = 1
+    for(index in names(.$indices)) {
+      lines(fyear,.$merged[,index],col=cols[num],pch=pchs[num],cex=1.5,type='o')
+      labels = c(labels,.$indices[[index]]$label)
+      num = num + 1
+    }
+    legend('bottom',labels,pch=pchs,col=cols,bty='n')
+  })
+}
+
 Comparer$report <- function(.,to=""){
   .$header(c('indices'),to=to)
   with(.$merged,{

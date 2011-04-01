@@ -5,7 +5,49 @@ Diagnoser <- Worker$proto(
   model = NULL
 )
 
+Diagnoser$areaYearImpliedPlot <- function(.){
+  data = cbind(.$model$data,resid=rstandard(.$model),predict(.$model,type='terms',se.fit=T))
+  oa = ddply(data,.(fyear),function(sub)with(sub,data.frame(est=mean(fit.fyear))))
+  oa$fyear = as.integer(as.character(oa$fyear))
+  sp = ddply(data,.(area,fyear),function(sub)with(sub,data.frame(mean=mean(fit.fyear+resid),se=sd(resid)/sqrt(length(resid)))))
+  sp$fyear = as.integer(as.character(sp$fyear))
+  print(ggplot(sp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
+    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(est)),data=oa,col='grey')+
+    facet_wrap(~area)+labs(x='Fishing year',y='Multiplier'))
+}
+
+Diagnoser$areaMonthResidPlot <- function(.){
+  sp = ddply(data,.(area,month),function(sub)with(sub,data.frame(mean=mean(resid),se=sd(resid)/sqrt(length(resid)))))
+  print(ggplot(sp,aes(x=month,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
+    geom_hline(yintercept=1,linetype=3,colour='grey')+
+    facet_wrap(~area)+labs(x='Month',y='Multiplier'))
+}
+
+Diagnoser$posMonthResidPlot <- function(.){
+  data = within(data,{
+    latt = round(lat,1)
+    lont = round(lon,1)
+  })
+  sp = ddply(data,.(latt,lont,month),function(sub)with(sub,data.frame(mean=mean(resid))))
+  #spg = expand.grid(month=1:12,lat=seq(-42,-36,0.1),lon=seq(174,179,0.1))
+  #sp=merge(spg,sp)
+  #ddply(data,.(lat,lon,month),nrow)
+  print(ggplot(sp,aes(x=lont,y=latt))+geom_tile(aes(fill=mean))+scale_fill_gradient2(low="blue",mid='grey',high="red")+facet_wrap(~month)+labs(x='',y='')+ylim(-42,-36))
+}
+
+Diagnoser$posSeasonResidPlot <- function(.){
+  data = within(data,{
+    latt = round(lat,1)
+    lont = round(lon,1)
+    season = factor(c('Su','Su','Au','Au','Au','Wi','Wi','Wi','Sp','Sp','Sp','Su')[month],levels=c('Sp','Su','Au','Wi'),ordered=T)
+  })
+  sp = ddply(data,.(latt,lont,season),function(sub)with(sub,data.frame(mean=mean(resid))))
+  print(ggplot(sp,aes(x=lont,y=latt))+geom_tile(aes(fill=mean))+scale_fill_gradient2(low="blue",mid='grey',high="red")+facet_wrap(~season)+labs(x='',y='')+ylim(-42,-36))
+}
+
 Diagnoser$lognormal <- function(.,to){
+
+  
   obs = log(.$model$data$catch)#!todo assumes log(catch)variable
   fits = fitted(.$model)
   resids = rstandard(.$model)
@@ -63,7 +105,7 @@ Diagnoser$lognormal <- function(.,to){
 	  abline(h=0,col='blue',lty=2)
 	  mtext(paste(field,"(",round(sum(!is.na(y))/length(y)*100),"%)"),outer=T,side=1,line=5)
 	}
-	.figure(paste("Diagnoser.Resids",field),'Residuals versus variable')
+	.$figure(paste("Diagnoser.Resids",field),'Residuals versus variable')
       }
   }
 }

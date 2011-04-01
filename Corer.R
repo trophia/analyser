@@ -9,10 +9,10 @@ Corer$combinationsPlot = function(.){
   par(mfrow=c(2,1))
   with(subset(.$combinations,trips %in% c(3,5,10)),{
     par(mar=c(0,4,4,1))
-    plot(catch*100~years,pch=(trips),xaxt='n',ylab='Catch (%)',las=1)
-    legend('topright',legend=unique(trips),pch=1:length(unique(trips)),bty='n',title='Trips')
+    plot(catch*100~years,pch=trips,xaxt='n',ylab='Catch (%)',las=1)
+    legend('topright',legend=unique(trips),pch=unique(trips),bty='n',title='Trips')
     par(mar=c(4,4,0,1))
-    plot(vessels~years,pch=(trips),xlab='Years',ylab='Vessels',las=1)
+    plot(vessels~years,pch=trips,xlab='Years',ylab='Vessels',las=1)
   })
 }
 
@@ -92,4 +92,50 @@ Corer$report <- function(.,to=""){
   .$figure('Corer.Histogram','Histogram of the number of years with data for each core vessel.',to=to)
 
   write.csv(.$data,file='Corer.Data.csv',row.names=F)
+}
+
+
+Corer$far <- function(.,to="",prefix='',tables=0,figures=0){
+  cat('<p>',file=to)
+
+  chosen = subset(.$combinations,trips==.$trips & years==.$years)
+  cat(
+    'Alternative core vessel selection criteria were investigated by considering the reduction in the number of vessels and percentage of catch ( Figure',figures+1,').',
+    'The most appropriate combination of criteria was considered to be to define the core fleet as those vessels that had fished for at least',.$trips,'in at least',.$years,'years.',
+    'These criteria resulted in a core fleet size of',chosen$vessels,'vessels which took',round(chosen$catch*100),'% of the catch ( Figure',figures+1,').',
+    'A histogram of the number of years in which each core vessel had data in the dataset is given in Figure',figures+2,'and the overlap of data among core vessels is shown in Figure',figures+3,'.'
+  ,file=to)
+
+  figures = figures + 1
+  dev.new(width=8,height=5)
+  .$combinationsPlot()
+  .$figure('Corer.Selection',paste('Figure ',figures,': Examination of parameters for defining core vessels.',sep=''),to=to)
+
+  figures = figures + 1
+  dev.new(width=8,height=5)
+  vesselYears = with(.$data,aggregate(list(n=fyear),list(fyear=fyear,vessel=vessel),length))
+  vesselYears = with(vesselYears,aggregate(list(n=fyear),list(vessel=vessel),length))
+  hist(vesselYears$n,breaks=1:length(unique(.$data$fyear)),col='grey',xlab='Fishing years',main='')
+  .$figure('Corer.Histogram',paste('Figure ',figures,': Histogram of the number of years with data for each core vessel.',sep=''),to=to)
+
+  figures = figures + 1
+  dev.new(width=8,height=5)
+  p = ggplot(ddply(.$data,.(vessel,fyear),function(sub)c(trips=length(unique(sub$trip)))),aes(x=fyear,y=factor(vessel))) + 
+    geom_point(aes(size=trips),shape=1) + scale_area('Trips',to=c(0,15))  + labs(x='Fishing year',y='Vessel')
+  print(p)
+  .$figure(
+    'Corer.Bubble',
+    paste('Figure ',figures,': Number of trips by fishing year for core vessels. Area of circles is proportional to the proportion of records over all fishing years and vessels.',sep=''),
+    to=to
+  )
+
+  tables = tables + 1
+  .$table(
+    .$summary,
+    paste('Table ',tables,': Summary of core vessel data by fishing year.',sep=''),
+    c('Fishing year','Strata','Vessels','Trips','Catch (t)','Effort num','Effort duration (hrs)',
+      'Zero catch<br>(landed,% records)','Events','Events per stratum','Strata (+ve)','Trips (+ve)',
+      'Effort num (+ve)','Effort duration (+ve)'),
+    to=to
+  )
 }

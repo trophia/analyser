@@ -3,6 +3,6 @@ Reporter <- Worker$proto(
 )
 
 Reporter$do = function(.){
-  html = file("index.html","w")
+  html = file("report.html","w")
   for(worker in .$workers) worker$report(to=html)
 }

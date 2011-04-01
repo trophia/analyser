@@ -3,7 +3,7 @@ Stepper <- Worker$proto(
   variable = expression(catch),
   family = gaussian(link='identity'),
   terms = expression(fyear),
-  r2thresh = 0.01
+  r2thresh = 1
 )
 
 Stepper$do <- function(.,data){
@@ -69,7 +69,7 @@ Stepper$do <- function(.,data){
   .$summary$AIC = as.numeric(.$summary$AIC)
   .$summary$DF = as.integer(.$summary$DF)
   .$summary$Deviance = as.numeric(.$summary$Deviance)
-  .$summary$R2 = as.numeric(.$summary$R2)
+  .$summary$R2 = round(as.numeric(.$summary$R2)*100,2)
 
   #Create a final model based on R2 increase criterion
   if(!is.null(.$r2thresh)){
@@ -107,4 +107,27 @@ Stepper$report <- function(.,to=""){
   print(anova(.$final))
   sink()
   cat("</pre>",file=to)
+}
+
+Stepper$far <- function(.,to="",tables=0,figures=0){
+
+  
+  
+  tables = tables + 1
+  .$table(
+    .$summary[,c('Term','DF','Deviance','R2','AIC','Final')],
+    paste("Table ",tables,": Summary of stepwise selection. Model terms are listed in the order of acceptance to the model.
+      AIC: Akaike Information Criterion; *: Term included in final model.",sep=''),
+    header=c('Term','DF','Deviance','Deviance explained(%)','AIC',''),
+    to=to
+  )
+  
+  figures = figures + 1
+  print(ggplot(melt(.$indices,id.vars='fyear'),aes(x=fyear,y=value,group=variable,shape=variable,linetype=variable)) + geom_point() + geom_line() + scale_shape_manual(values=1:30) + labs(x='Fishing year',y='Coefficient',shape="Term",linetype="Term"))
+  .$figure(
+    "Stepper.Indices",
+    paste("Figure ",figures,": Annual coefficients at each step in the term selection process.",sep=''),
+    to=to
+  )
+  
 }

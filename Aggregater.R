@@ -1,26 +1,36 @@
 Aggregater <- Worker$proto(
   label = "Aggregater",
+
+  data = NULL,
   by = NULL,
   first = NULL,
   sum = NULL,
-  mean = NULL
+  mean = NULL,
+
+  summary = NULL
 )
 
-Aggregater$do <- function(.,data){
+Aggregater$new <- function(.,data,by=NULL,first = NULL,sum = NULL,mean = NULL){
+  inst = .$proto(data=data,by=by,first=first,sum=sum,mean=mean)
+  inst$init()
+  inst
+}
+
+Aggregater$init <- function(.){
   if(!is.null(.$by)){
     #Create a list of by variables
     by = list()
-    for(name in .$by) by[[name]] = data[,name]
+    for(name in .$by) by[[name]] = .$data[,name]
     #Do aggregations
-    levels = aggregate(rep(NA,nrow(data)),by,function(x)NULL)[,.$by]
-    if(!is.null(.$first)) levels = cbind(levels,aggregate(data[,.$first],by,head,n=1)[,.$first])
-    if(!is.null(.$sum)) levels = cbind(levels,aggregate(data[,.$sum],by,sum,na.rm=T)[,.$sum])
-    if(!is.null(.$mean)) levels = cbind(levels,aggregate(data[,.$mean],by,mean,na.rm=T)[,.$mean])
+    levels = aggregate(rep(NA,nrow(.$data)),by,function(x)NULL)[,.$by]
+    if(!is.null(.$first)) levels = cbind(levels,aggregate(.$data[,.$first],by,head,n=1)[,.$first])
+    if(!is.null(.$sum)) levels = cbind(levels,aggregate(.$data[,.$sum],by,sum,na.rm=T)[,.$sum])
+    if(!is.null(.$mean)) levels = cbind(levels,aggregate(.$data[,.$mean],by,mean,na.rm=T)[,.$mean])
     #Return aggregated data
-    data = levels
+    .$data = levels
   }
   #Create summary
-  .$summary = ddply(data,.(fyear),function(sub) data.frame(
+  .$summary = ddply(.$data,.(fyear),function(sub) data.frame(
     strata=nrow(sub),
     vessels=length(unique(sub$vessel)),
     trips=length(unique(sub$trip)),
@@ -35,8 +45,6 @@ Aggregater$do <- function(.,data){
     effort_number_pos = sum(subset(sub,catch>0)$num,na.rm=T),
     effort_duration_pos = sum(subset(sub,catch>0)$duration,na.rm=T)
   ))
-  #Return data
-  return(data)
 }
 
 Aggregater$report <- function(.,to=""){

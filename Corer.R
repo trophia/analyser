@@ -1,34 +1,32 @@
 Corer <- Worker$proto(
   label = "Corer",
+
+  data = NULL,
   trips = NULL, #Minimum number of trips in a year
-  years = NULL  #Minimum number of qualifying years
+  years = NULL,  #Minimum number of qualifying years
+
+  summary = NULL
 )
 
-Corer$combinationsPlot = function(.){
-  #Separate method because called in do() and in report()
-  par(mfrow=c(2,1))
-  with(subset(.$combinations,trips %in% c(3,5,10)),{
-    par(mar=c(0,4,4,1))
-    plot(catch*100~years,pch=trips,xaxt='n',ylab='Catch (%)',las=1)
-    legend('topright',legend=unique(trips),pch=unique(trips),bty='n',title='Trips')
-    par(mar=c(4,4,0,1))
-    plot(vessels~years,pch=trips,xlab='Years',ylab='Vessels',las=1)
-  })
+Corer$new <- function(.,data,trips=NULL,years=NULL){
+  inst = .$proto(data=data,trips=trips,years=years)
+  inst$init()
+  inst
 }
 
-Corer$do <- function(.,data){
+Corer$init <- function(.){
   #Calculate trips per year per vessel
-  temp = aggregate(list(trips=data$trip),list(vessel=data$vessel,fyear=data$fyear),function(trip)length(unique(trip)))
+  temp = aggregate(list(trips=.$data$trip),list(vessel=.$data$vessel,fyear=.$data$fyear),function(trip)length(unique(trip)))
   #Calculate numbers of vessels and catch using alternative qualification criteria
   vesselsList = list()
   .$combinations = ddply(expand.grid(trips=1:10,years=1:20),.(trips,years),function(sub){
     vessels = subset(ddply(subset(temp,trips>=sub$trips),.(vessel),function(subsub)data.frame(years=nrow(subsub))),years>=sub$years)$vessel
-    catch = sum(subset(data,vessel %in% vessels)$catch,na.rm=T)
+    catch = sum(subset(.$data,vessel %in% vessels)$catch,na.rm=T)
     vesselsList[[paste(sub$trips,sub$years)]] <<- vessels
     data.frame(catch=catch,vessels=length(vessels))
   })
   #Calculate catch as a proportion
-  .$combinations = within(.$combinations,{catch=catch/sum(data$catch,na.rm=T)})
+  .$combinations = within(.$combinations,{catch=catch/sum(.$data$catch,na.rm=T)})
   #Prompt for parameters if need be
   if(is.null(.$trips) | is.null(.$years)){
      #Generate graphs for user
@@ -39,9 +37,9 @@ Corer$do <- function(.,data){
   #Determine qualitfying vessels
   .$vessels = vesselsList[[paste(.$trips,.$years)]]
   #Subset data accordingly
-  data = subset(data,vessel %in% .$vessels)
+  .$data = subset(.$data,vessel %in% .$vessels)
   #Create a summary
-  .$summary = ddply(data,.(fyear),function(sub) data.frame(
+  .$summary = ddply(.$data,.(fyear),function(sub) data.frame(
     strata=nrow(sub),
     vessels=length(unique(sub$vessel)),
     trips=length(unique(sub$trip)),
@@ -56,10 +54,18 @@ Corer$do <- function(.,data){
     effort_number_pos = sum(subset(sub,catch>0)$num,na.rm=T),
     effort_duration_pos = sum(subset(sub,catch>0)$duration,na.rm=T)
   ))
-  #Store data (for dumping and detailed reporting later)
-  .$data = data
-  #Return data
-  return(.$data)
+}
+
+Corer$combinationsPlot = function(.){
+  #Separate method because called in do() and in report()
+  par(mfrow=c(2,1))
+  with(subset(.$combinations,trips %in% c(3,5,10)),{
+    par(mar=c(0,4,4,1))
+    plot(catch*100~years,pch=trips,xaxt='n',ylab='Catch (%)',las=1)
+    legend('topright',legend=unique(trips),pch=unique(trips),bty='n',title='Trips')
+    par(mar=c(4,4,0,1))
+    plot(vessels~years,pch=trips,xlab='Years',ylab='Vessels',las=1)
+  })
 }
 
 Corer$report <- function(.,to=""){
@@ -93,7 +99,6 @@ Corer$report <- function(.,to=""){
 
   write.csv(.$data,file='Corer.Data.csv',row.names=F)
 }
-
 
 Corer$far <- function(.,to="",prefix='',tables=0,figures=0){
   cat('<p>',file=to)

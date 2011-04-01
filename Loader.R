@@ -1,11 +1,21 @@
 Loader <- Worker$proto(
   label = "Loader",
-  file = 'cpue.txt' #The filename for the data
+  
+  file = NULL,
+  
+  data = NULL,
+  summary = NULL
 )
 
-Loader$do <- function(.){
-  #Read in data file
-  data = read.table(.$file,header=T,colClasses="character",sep="\t")
+Loader$new <- function(.,file){
+  inst = .$proto(file=file)
+  inst$init()
+  inst
+}
+
+Loader$init <- function(.){
+   #Read in data file
+  .$data = read.table(.$file,header=T,colClasses="character",sep="\t")
   #Create list of field types
   fields = list(
 	  event = 'integer',
@@ -43,19 +53,19 @@ Loader$do <- function(.){
   )
   #Create (if needed) and convert each specified field. This ensures data has the expected fields and field types
   for(field in names(fields)){
-    if(!(field %in% names(data))) data[,field] = rep(NA,nrow(data))
-    data[,field] = get(paste('as.',fields[[field]],sep=''))(data[,field])
+    if(!(field %in% names(.$data))) .$data[,field] = rep(NA,nrow(.$data))
+    .$data[,field] = get(paste('as.',fields[[field]],sep=''))(.$data[,field])
   }
   #Fields not specified (usually species specific fields) are assumed to be numeric
-  for(field in names(data)){
-    if(!(field %in% names(fields))) data[,field] = as.numeric(data[,field])
+  for(field in names(.$data)){
+    if(!(field %in% names(fields))) .$data[,field] = as.numeric(.$data[,field])
   }
   #Fishing year is converted to character codes
-  #data = within(data,{
+  #.$data = within(.$data,{
   # fyear = paste(substr(as.character(fyear-1),3,4),substr(as.character(fyear),3,4),sep='/')
   #})
   #Create summary
-  .$summary = ddply(data,.(fyear),function(sub) data.frame(
+  .$summary = ddply(.$data,.(fyear),function(sub) data.frame(
       events=nrow(sub),
       vessels=length(unique(sub$vessel)),
       trips=length(unique(sub$trip)),
@@ -63,8 +73,6 @@ Loader$do <- function(.){
       effort_duration=sum(sub$duration,na.rm=T),
       cpueno=sum(sub$cpueno,na.rm=T)
   ))
-  #Return data
-  data
 }
 
 Loader$report <- function(.,to=""){

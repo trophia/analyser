@@ -2,9 +2,11 @@
 
 Influencer <- Worker$proto()
 
-Influencer$do <- function(.,model){
-  .$influence = Influence$new(model)
-  .$influence$calc()
+Influencer$new <- function(.,model){
+  inst = .$proto(model=model)
+  inst.$influence = Influence$new(model)
+  inst.$influence$calc()
+  inst
 }
 
 Influencer$report <- function(.,to=""){

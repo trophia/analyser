@@ -2,19 +2,27 @@ library(proto)
 
 Subsetter <- Worker$proto(
   label = "Subsetter",
+
+  data = NULL,
   criteria = NULL,
   size = NULL
 )
 
-Subsetter$do <- function(.,data){
+Subsetter$new <- function(.,data,criteria=NULL,size=NULL){
+  inst = .$proto(data=data,criteria=criteria,size=size)
+  inst$init()
+  inst
+}
+
+Subsetter$init <- function(.){
   #Exclude records where cpueno==1
-  data = subset(data,is.na(cpueno)|cpueno==0)
+  data = subset(.$data,is.na(cpueno)|cpueno==0)
   #Subset using specified expression
-  if(!is.null(.$criteria)) data = subset(data,eval(.$criteria))
+  if(!is.null(.$criteria)) .$data = subset(.$data,eval(.$criteria))
   #Sample to Size if specified
-  if(!is.null(.$size)) data = data[sample(1:nrow(data),min(nrow(data),.$size)),]
+  if(!is.null(.$size)).$data = .$data[sample(1:nrow(.$data),min(nrow(.$data),.$size)),]
   #Create summary
-  .$summary = ddply(data,.(factor(fyear)),function(sub) data.frame(
+  .$summary = ddply(.$data,.(factor(fyear)),function(sub) data.frame(
     events=nrow(sub),
     vessels=length(unique(sub$vessel)),
     trips=length(unique(sub$trip)),
@@ -23,8 +31,6 @@ Subsetter$do <- function(.,data){
     effort_duration=sum(sub$duration,na.rm=T),
     percent_zero=round(sum(sub$catch==0,na.rm=T)/nrow(sub)*100,2)
   ))
-  #Return data
-  data
 }
 
 Subsetter$report <- function(.,to=""){

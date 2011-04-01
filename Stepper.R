@@ -1,15 +1,29 @@
 Stepper <- Worker$proto(
   label = "Stepper",
+  
+  data = NULL,
+  variable = NULL,
+  family = NULL,
+  terms = NULL,
+  r2thresh = NULL
+)
+
+Stepper$new <- function(.,
+  data,
   variable = expression(catch),
   family = gaussian(link='identity'),
   terms = expression(fyear),
-  r2thresh = 1
-)
+  r2thresh = 1)
+{
+  inst = .$proto(data=data,variable=variable,family=family,terms=terms,r2thresh=r2thresh)
+  inst$init()
+  inst
+}
 
-Stepper$do <- function(.,data){
+Stepper$init <- function(.){
   #Clean data by removing records which have NAs or a indefinite (e.g. log(0)) for any terms
   .$cleaning = data.frame(Term=NA,NAs=NA,LogZeros=NA,stringsAsFactors=F)
-  .$dataClean = data
+  dataOrig = .$data
   #Split terms expression into individual terms.
   terms = strsplit(as.character(.$terms),'[ ]*\\+[ ]*')[[1]]
   for(term in terms){
@@ -17,21 +31,20 @@ Stepper$do <- function(.,data){
       #Extract the field name form the term
       field = gsub("(log|poly|,[ ]*[0123456789]+)|\\(|\\)","",term)
       #Remove records where the field is NA
-      .$dataClean = .$dataClean[!is.na(.$dataClean[,field]),]
+      .$data = .$data[!is.na(.$data[,field]),]
       #If the term involves a log then remove records where the field is <0
       logged = length(grep(paste('log\\(',field,'\\)',sep=''),term))>0
-      if(logged) .$dataClean = .$dataClean[.$dataClean[,field]>0,]
+      if(logged) .$data = .$data[.$data[,field]>0,]
       #Add to cleaning summary
-      .$cleaning = rbind(.$cleaning,c(Term=term,NAs=sum(is.na(data[,field])),LogZeros=if(logged)sum(data[,field]<=0) else '-'))
+      .$cleaning = rbind(.$cleaning,c(Term=term,NAs=sum(is.na(dataOrig[,field])),LogZeros=if(logged)sum(dataOrig[,field]<=0) else '-'))
     }
   }
   .$cleaning = .$cleaning[-1,]
-  data = .$dataClean
 
   #Do stepwise selection of terms
-  null = glm(as.formula(paste(as.character(.$variable),'~1')),data=data,family=.$family)
+  null = glm(as.formula(paste(as.character(.$variable),'~1')),data=.$data,family=.$family)
   .$summary =  data.frame(Term="-",AIC=null$aic,N=length(null$residuals),DF=0,Deviance=null$deviance,R2=0.0,SDSR=NA,MASR=NA,stringsAsFactors=F)
-  .$indices = data.frame(fyear=sort(unique(data$fyear)))
+  .$indices = data.frame(fyear=sort(unique(.$data$fyear)))
   #Keeper functions records each stepLast
   extractCoeffs = function(model,name){
     coeffs = summary(model)$coeff
@@ -60,7 +73,7 @@ Stepper$do <- function(.,data){
     aic #Seems that you have to return something
   }
   stepped = step(
-    glm(as.formula(paste(as.character(.$variable),'~fyear')),data=data,family=.$family),
+    glm(as.formula(paste(as.character(.$variable),'~fyear')),data=.$data,family=.$family),
     as.formula(paste(as.character(.$variable),'~',as.character(.$terms))),
     direction='forward',
     keep=keeper,
@@ -88,10 +101,7 @@ Stepper$do <- function(.,data){
   
   #Create final model
   .$finalFormula = as.formula(paste(as.character(.$variable),'~fyear+',paste(finalTerms,collapse='+')))
-  .$final = glm(.$finalFormula,data=data,family=.$family)
-
-  #Return the final model
-  .$final
+  .$final = glm(.$finalFormula,data=.$data,family=.$family)
 }
 
 Stepper$report <- function(.,to=""){

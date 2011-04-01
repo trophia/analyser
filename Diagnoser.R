@@ -5,8 +5,19 @@ Diagnoser <- Worker$proto(
   model = NULL
 )
 
+Diagnoser$new <- function(.,model){
+  inst = .$proto(model)
+  inst$data = cbind(
+    model$data,
+    residual = rstandard(model),
+    predict(model,type='terms',se.fit=T),
+    observed = log(model$data$catch),
+    fitted = fitted(model)
+  )
+  inst
+}
+
 Diagnoser$areaYearImpliedPlot <- function(.){
-  data = cbind(.$model$data,resid=rstandard(.$model),predict(.$model,type='terms',se.fit=T))
   oa = ddply(data,.(fyear),function(sub)with(sub,data.frame(est=mean(fit.fyear))))
   oa$fyear = as.integer(as.character(oa$fyear))
   sp = ddply(data,.(area,fyear),function(sub)with(sub,data.frame(mean=mean(fit.fyear+resid),se=sd(resid)/sqrt(length(resid)))))
@@ -46,11 +57,6 @@ Diagnoser$posSeasonResidPlot <- function(.){
 }
 
 Diagnoser$lognormal <- function(.,to){
-
-  
-  obs = log(.$model$data$catch)#!todo assumes log(catch)variable
-  fits = fitted(.$model)
-  resids = rstandard(.$model)
 
   #Standardised residuals
   dev.new(width=11,height=8)

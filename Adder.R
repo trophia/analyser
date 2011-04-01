@@ -2,27 +2,35 @@ library(proto)
 
 Adder <- Worker$proto(
   label = "Adder",
-  files = NULL #The filename for the additional data
+
+  data = NULL, #The starting data set
+  files = NULL, #The filename for the additional data
+
+  done = NULL
 )
 
-Adder$do <- function(.,data){
+Adder$new <- function(.,data,files=NULL){
+  inst = .$proto(data=data,files=files)
+  inst$init()
+  inst
+}
+
+Adder$init <- function(.){
   .$done = list()
   for(file in .$files){
     #Read in data file
     extra = read.table(file,header=T,sep="\t")
     #Merge in extra data
     #Relies on the colunns in the file having the same headers as the data
-    nd = names(data)
+    nd = names(.$data)
     ne = names(extra)
-    data = merge(data,extra,all.x=T)
+    data = merge(.$data,extra,all.x=T)
     #Record
     .$done[[file]] = list(
       by = ne[ne %in% nd],
       extra = ne[!(ne %in% nd)]
     )
   }
-  #Return data
-  data
 }
 
 Adder$report <- function(.,to=""){

@@ -1,17 +1,28 @@
 Indexer <- Worker$proto(
-  data = NULL,
-  models = NULL
+  label = 'Indexer',
+
+  datasets = NULL,
+  models = NULL,
+  others = NULL,
+
+  indices = NULL
 )
 
-Indexer$do <- function(.){
+Indexer$new <- function(.,datasets=NULL,models=NULL,others=NULL){
+  inst = .$proto(datasets=datasets,models=models,others=others)
+  inst$init()
+  inst
+}
+
+Indexer$init <- function(.){
   #Create a data.frame that will hold all the CPUE indices that are calculated
   .$indices = NULL
 
   geomean = function(x) exp(mean(log(x)))
 
   #Calculate unstandardised indices for each data set
-  for(name in names(.$data)){
-    data = .$data[[name]]
+  for(name in names(.$datasets)){
+    data = .$datasets[[name]]
     #Calculate indices
     indices = ddply(data,.(fyear),function(sub)with(sub,data.frame(
       success.prop = sum(sub$catch>0)/nrow(sub),
@@ -27,7 +38,7 @@ Indexer$do <- function(.){
     })
     #Merge into .$indices
     names(indices) = c('fyear',paste(name,names(indices)[-1],sep='.'))
-    .$indices = if(is.null(.$indices)) indices else merge(.$indices,indices,by='fyear',all.x=T)
+    .$indices = if(is.null(.$indices)) indices else merge(.$indices,indices,by='fyear',all=T)
   }
 
   coeffs = function(model,term){
@@ -63,12 +74,36 @@ Indexer$do <- function(.){
     })
     #Merge into .$indices
     names(indices) = c('fyear',paste(name,names(indices)[-1],sep='.'))
-    .$indices = if(is.null(.$indices)) indices else merge(.$indices,indices,by='fyear',all.x=T)
+    .$indices = if(is.null(.$indices)) indices else merge(.$indices,indices,by='fyear',all=T)
+  }
+
+  #Merge in others
+  if(!is.null(.$others)){
+    .$indices = if(is.null(.$indices)) .$others else merge(.$indices,.$others,by='fyear',all=T)
+    #!todo for others with '.index' in their name normalise to a geometic mean of 1 for shared time period
   }
 }
 
+Indexer$comparisonPlot <- function(.,indices=NULL,xlab='Fishing year',ylab='Index'){
+  with(.$indices,{
+    if(is.null(indices)) indices = names(.$indices)
+    fyear = as.integer(as.character(fyear))
+    plot(NULL,NULL,xlim=range(fyear),ylim=c(0,max(.$indices[,indices],na.rm=T)),ylab=ylab,xlab=xlab)
+    labels = vector()
+    pchs = 1:10
+    cols = rep(1,10)
+    num = 1
+    for(index in indices) {
+      lines(fyear,.$indices[,index],col=cols[num],pch=pchs[num],cex=1.5,type='o')
+      labels = c(labels,index)
+      num = num + 1
+    }
+    legend('bottom',labels,pch=pchs,col=cols,bty='n')
+  })
+}
+
 Indexer$report <- function(.,to=""){
-  .$header(c('data','model'),to=to)
+  .$header(c('datasets','models'),to=to)
   if(!is.null(.$indices)){
     #Table of indices
     .$table(.$indices,"CPUE indices",to=to)

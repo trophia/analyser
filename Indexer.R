@@ -84,9 +84,10 @@ Indexer$init <- function(.){
   }
 }
 
-Indexer$comparisonPlot <- function(.,indices=NULL,xlab='Fishing year',ylab='Index'){
+Indexer$comparisonPlot <- function(.,indices=NULL,match=NULL,xlab='Fishing year',ylab='Index'){
   with(.$indices,{
-    if(is.null(indices)) indices = names(.$indices)
+    if(is.null(match)) match = '.index'
+    if(is.null(indices)) indices = names(.$indices)[grep(match,names(.$indices))]
     fyear = as.integer(as.character(fyear))
     plot(NULL,NULL,xlim=range(fyear),ylim=c(0,max(.$indices[,indices],na.rm=T)),ylab=ylab,xlab=xlab)
     labels = vector()

@@ -47,15 +47,19 @@ Aggregater$init <- function(.){
   ))
 }
 
-Aggregater$report <- function(.,to=""){
-  .$header(c('by','first','sum','mean'),to=to)
-  .$table(
-    .$summary,
-    'Summary of data_agg (data_sub after aggregation) by fishing year.',
-    c('Fishing year','Strata','Vessels','Trips','Catch (t)','Effort num','Effort duration (hrs)',
-      'Zero catch<br>(landed,% records)','Events','Events per stratum',
-      'Strata (+ve)','Trips (+ve)',
-      'Effort num (+ve)','Effort duration (+ve)'),
-    to=to
+Aggregater$report <- function(.){
+  Paragraph(
+    'Data were aggregated into strata were each strata was defined as a unque combination of ',paste(.$by,collapse=', '),'. ',
+    '@Aggregater.Summary summarise the extent of "roll-up" (the number of orginial events associated with each stratum) and the number, proportion and 
+    effort from strata that had positive catches.'
+  )
+
+  .$summary$fyear = as.character(.$summary$fyear) #Prevents 'commaring'
+  Table(
+    .$summary[,c('fyear','strata','events_per_strata','strata_pos','percent_zero','trips_pos','effort_number_pos','effort_duration_pos')],
+    label = 'Aggregater.Summary',
+    caption = 'Summary by fishing year of the data after aggregation to strata.',
+    header = c('Fishing year','Strata','Events per stratum',#'Events','Vessels','Trips','Catch (t)','Effort num','Effort duration (hrs)',
+      'Strata with positive catch','Strata with zero catch (%)','Trips with positive catch','Total effort units from strata with positive catch','Total effort duration from strata with positive catch')
   )
 }

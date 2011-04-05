@@ -60,10 +60,9 @@ Loader$init <- function(.){
   for(field in names(.$data)){
     if(!(field %in% names(fields))) .$data[,field] = as.numeric(.$data[,field])
   }
-  #Fishing year is converted to character codes
-  #.$data = within(.$data,{
-  # fyear = paste(substr(as.character(fyear-1),3,4),substr(as.character(fyear),3,4),sep='/')
-  #})
+  #If fishing events is not defined then set as 1
+  if(sum(.$data$events,na.rm=T)==0) .$data$events = 1
+  
   #Create summary
   .$summary = ddply(.$data,.(fyear),function(sub) data.frame(
       events=nrow(sub),

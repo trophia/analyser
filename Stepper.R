@@ -27,7 +27,7 @@ Stepper$init <- function(.){
   #Split terms expression into individual terms.
   terms = strsplit(as.character(.$terms),'[ ]*\\+[ ]*')[[1]]
   for(term in terms){
-    if(length(grep(':',term) )==0) { #Ignore interaction terms
+    if(length(grep('[:\\*]+',term) )==0) { #Ignore interaction terms
       #Extract the field name form the term
       field = gsub("(log|poly|,[ ]*[0123456789]+)|\\(|\\)","",term)
       #Remove records where the field is NA
@@ -104,40 +104,25 @@ Stepper$init <- function(.){
   .$final = glm(.$finalFormula,data=.$data,family=.$family)
 }
 
-Stepper$report <- function(.,to=""){
-  .$header(c("variable","family","terms","r2thresh"),to=to)
+Stepper$report <- function(.){
+  formula = as.character(.$finalFormula)
+  formula = paste(formula[2],'~',formula[3])
+  Paragraph(
+    'Forward stepwise selection of model terms was done on the basis of the Akaike Information Criterion (AIC). The maximal set of model terms offered to the stepwise selection algorithm was <p><i>',as.character(.$terms),'</i></p> 
+    with the term <i>fyear</i> forced into the model. Terms were only added to the model if they increased the percent deviance explained by ',.$r2thresh,'%. ',
+    '@Stepper.Summary provides a summary of the changes in the deviance explained and in AIC as each term was added to the model. The final model formula was <p><i>',formula,'</i></p>'
+  )
 
-  cat("<h2>Stepwise selection<h2>",file=to)
-  .$table(.$summary,"Summary of stepwise selection. Model terms are listed in the order of accdeptance to the model.AIC: Akaike Information Criterion, R2: Proportion of deviance explained. Final: Whether or not variable was included in final model.",to=to)
-  print(ggplot(melt(.$indices,id.vars='fyear'),aes(x=fyear,y=value,group=variable,shape=variable,linetype=variable)) + geom_point() + geom_line() + scale_shape_manual(values=1:30) + labs(x='Fishing year',y='Coefficient',shape="Term",linetype="Term"))
-  .$figure("Stepper.Indices","Annual coefficients at each step in the term selection process.",to=to)
-  
-  cat("<h2>Final model<h2><pre>",file=to)
-  sink(to)
-  print(anova(.$final))
-  sink()
-  cat("</pre>",file=to)
-}
-
-Stepper$far <- function(.,to="",tables=0,figures=0){
-
-  
-  
-  tables = tables + 1
-  .$table(
+  Table(
     .$summary[,c('Term','DF','Deviance','R2','AIC','Final')],
-    paste("Table ",tables,": Summary of stepwise selection. Model terms are listed in the order of acceptance to the model.
-      AIC: Akaike Information Criterion; *: Term included in final model.",sep=''),
-    header=c('Term','DF','Deviance','Deviance explained(%)','AIC',''),
-    to=to
+    label = 'Stepper.Summary',
+    caption= "Summary of stepwise selection. Model terms are listed in the order of acceptance to the model. AIC: Akaike Information Criterion; *: Term included in final model.",
+    header = c('Term','DF','Deviance','Deviance explained (%)','AIC','')
   )
-  
-  figures = figures + 1
-  print(ggplot(melt(.$indices,id.vars='fyear'),aes(x=fyear,y=value,group=variable,shape=variable,linetype=variable)) + geom_point() + geom_line() + scale_shape_manual(values=1:30) + labs(x='Fishing year',y='Coefficient',shape="Term",linetype="Term"))
-  .$figure(
-    "Stepper.Indices",
-    paste("Figure ",figures,": Annual coefficients at each step in the term selection process.",sep=''),
-    to=to
-  )
-  
+
+  #print(ggplot(melt(.$indices,id.vars='fyear'),aes(x=fyear,y=value,group=variable,shape=variable,linetype=variable)) + geom_point() + geom_line() + scale_shape_manual(values=1:30) + labs(x='Fishing year',y='Coefficient',shape="Term",linetype="Term"))
+  #Figure(
+  #  "Stepper.Indices",
+  #  "Annual coefficients at each step in the term selection process."
+  #)
 }

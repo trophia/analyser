@@ -15,14 +15,28 @@ theme_update(
 vplayout = function(rows,cols) {grid.newpage(); pushViewport(viewport(layout=grid.layout(ncol=cols,nrow=rows)))}
 subplot = function(row,col) viewport(layout.pos.col=col,layout.pos.row=row)
 
+load("/Trophia/Tanga/Data/shared/NZFMA.Rdata")
+load("/Trophia/Tanga/Data/shared/NZbathy.Rdata")
+library(PBSmapping)
+data(worldLL)
+
+latr = c(-60,-30)
+lonr = c(160,180)
+coast = clipPolys(worldLL,ylim=latr,xlim=lonr)
+d100 = clipPolys(as.PolySet(subset(NZbathy$ps,PID==1),projection='LL'),ylim=latr,xlim=lonr)
+d200 = clipPolys(as.PolySet(subset(NZbathy$ps,PID==2),projection='LL'),ylim=latr,xlim=lonr)
+d1000 = clipPolys(as.PolySet(subset(NZbathy$ps,PID==4),projection='LL'),ylim=latr,xlim=lonr)
+stats = clipPolys(statarea.general$ps,ylim=latr,xlim=lonr)
+fmas = clipPolys(fma.general$ps,ylim=latr,xlim=lonr)
+statlabels = subset(calcCentroid(stats),!is.na(X) & !is.na(Y))
+statlabels$label = statarea.general$pd$label[match(statlabels$PID,statarea.general$pd$PID)]
 
 Worker <- proto(
   label = "Worker"
 )
 
-#' Create a header for the report of this Worker
-Worker$header = function(.,attrs=NULL,to=""){
-  cat("<h1 class='worker'>",.$label,"</h1>",file=to)
+Worker$report = function(.,attrs=NULL,to=""){
+  cat("<p class='worker'>",.$label,"</p>",file=to)
   if(is.null(attrs)) attrs = .$ls()
   for(attr in attrs) {
     cat("<p class='attr'>.$",attr,"<pre>",file=to)
@@ -31,38 +45,4 @@ Worker$header = function(.,attrs=NULL,to=""){
     sink(file=NULL)
     cat("</pre></p>",file=to)
   }
-}
-
-Worker$table = function(.,data,caption="",header=names(data),folder='.',to=""){
-    cat("<p><b>",caption,"</b></p>\n<table>",sep='',file=to)
-    cat(paste("<tr><th>",paste(header,collapse="</th><th>"),"</th></tr>\n"),file=to)
-    #Format each column based on data type
-    formatted = data.frame(Ignore=1:nrow(data))
-    for(col in 1:ncol(data)){
-      values = data[,col]
-      formatted_values = format(values,digits=6,big.mark=",")
-      formatted_values[is.na(values)] = '-'
-      formatted = cbind(formatted,formatted_values)
-    }
-    formatted$Ignore <- NULL
-    for(row in 1:nrow(formatted)) cat("<tr><td>",paste(format(formatted[row,]),collapse="</td><td>"),"</td></tr>\n",file=to) #Need to format again for unknown reason
-    cat("</table><br>\n",file=to)
-}
-
-Worker$figure = function(.,name,caption,folder='.',to=""){
-  #Create a PNG file for report
-  filename = paste(folder,"/",name,".png",sep="")
-  dimensions = par("din") * par("cra") / par("cin") 
-  dev.print(png,filename=filename,width=dimensions[1],height=dimensions[2])
-  cat("<img src='",filename,"'>\n",sep="",file=to)
-  cat("<p><b>",caption,"</b></p>\n",file=to)
-  #Also copy to PDF for better graphics
-  dev.copy2pdf(file=paste(folder,"/",name,".pdf",sep=""))
-}
-
-Worker$view = function(.){
-  temp = file('temp.html','w')
-  .$report(temp)
-  close(temp)
-  system("firefox temp.html",wait=F)
 }

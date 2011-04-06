@@ -84,23 +84,14 @@ Indexer$init <- function(.){
   }
 }
 
-Indexer$comparisonPlot <- function(.,indices=NULL,match=NULL,xlab='Fishing year',ylab='Index'){
-  with(.$indices,{
-    if(is.null(match)) match = '.index'
-    if(is.null(indices)) indices = names(.$indices)[grep(match,names(.$indices))]
-    fyear = as.integer(as.character(fyear))
-    plot(NULL,NULL,xlim=range(fyear),ylim=c(0,max(.$indices[,indices],na.rm=T)),ylab=ylab,xlab=xlab)
-    labels = vector()
-    pchs = 1:10
-    cols = rep(1,10)
-    num = 1
-    for(index in indices) {
-      lines(fyear,.$indices[,index],col=cols[num],pch=pchs[num],cex=1.5,type='o')
-      labels = c(labels,index)
-      num = num + 1
-    }
-    legend('bottom',labels,pch=pchs,col=cols,bty='n')
-  })
+Indexer$comparisonPlot <- function(.,indices=NULL,match=NULL,ylab=''){
+  if(is.null(match)) match = '.index'
+  if(is.null(indices)) indices = names(.$indices)[grep(match,names(.$indices))]
+  dev.new(width=16/2.54,height=13/2.54)
+  data = melt(.$indices[c('fyear',indices)],id.vars='fyear')
+  data$fyear = as.integer(as.character(data$fyear))
+  ggplot(data,aes(x=fyear,y=value,group=variable,shape=variable)) + geom_point(size=4) + geom_line() + scale_shape_manual(values=1:30) + 
+    labs(x='Fishing year',y=ylab,shape='') + ylim(0,max(data$value))
 }
 
 Indexer$report <- function(.,to=""){

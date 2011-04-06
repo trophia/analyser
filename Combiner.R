@@ -16,7 +16,11 @@ Combiner$new <- function(.,data,thresh = 0.01,levels = NULL,alsos = NULL,nots=NU
 
 Combiner$init <- function(.){
   for(name in names(.$data)){
-    if(is.character(.$data[,name]) & !(name %in% .$nots)){
+    if(name=='month'){
+      .$data$month = c('Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec')[.$data$month]
+      .$data$month = factor(.$data$month,levels=c('Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'),ordered=T)
+    }
+    else if(is.character(.$data[,name]) & !(name %in% .$nots)){
       if(name %in% names(.$levels)){
 	#Use the specified levels and put everything else into other
 	.$data[!(.$data[,name] %in% .$levels[[name]]),name] = 'Other'

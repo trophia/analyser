@@ -27,25 +27,25 @@ Table <- function(data,label,caption="",header=names(data)){
     reportTables <<- reportTables + 1
 
     cat("<div class='table'><p class='caption'><a id='",label,"'>Table ",reportTables,"</a>: ",caption,"</p>\n<table>",sep='',file=report)
-    cat(paste("<tr><th>",paste(header,collapse="</th><th>"),"</th></tr>\n"),file=report)
+    #Output header
+    cat("<tr>",paste("<th class='",c('left',rep('right',length(header)-1)),"'>",header,"</th>",sep='',collapse=''),"</tr>\n",file=report)
     #Format each column based on data type
-    formatted = data.frame(Ignore=1:nrow(data))
+    formatted = list()
     for(col in 1:ncol(data)){
       values = data[,col]
       #Determine appropriate number of trailing digits
       #digits = nchar(format(round(max(values)),scientific=F))
       formatted_values = format(values,digits=4,big.mark=",")
       formatted_values[is.na(values)] = '-'
-      formatted = cbind(formatted,formatted_values)
+      formatted[[col]] = formatted_values
     }
-    formatted$Ignore <- NULL
-    for(row in 1:nrow(formatted)){
+    #Output values
+    for(row in 1:nrow(data)){
       Html("<tr>\n")
-      for(col in 1:ncol(formatted)){
-	just = if(col==1) 'left' else 'right'
-	string = format(formatted[row,col]) #For some reason this needs another call to format!??##@@!
-	string = gsub(",",", ",string)
-	Html('<td class="',just,'">',string,"</td>\n")
+      for(col in 1:ncol(data)){
+	string = format(formatted[[col]][row])
+	string = gsub(",",",&nbsp;",string) #It is important to use nbsp so that the space is not breaking. Otherwise can get funky column widths that break a number after comma
+	Html('<td class="',if(col==1) 'left' else 'right','">',string,"</td>\n")
       }
       Html("</tr>\n")
     }
@@ -103,7 +103,7 @@ ReportStart <- function(title=NULL){
 	table {
 		width:95%;
 	}
-	td {
+	th, td {
 		font-size: 10pt;
 	}
 	table .left {

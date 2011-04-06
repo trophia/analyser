@@ -81,7 +81,7 @@ Corer$report <- function(.){
     A histogram of the number of years in which each core vessel had data in the dataset is provided (@Corer.Histogram) as is the overlap of data among core vessels (@Corer.Bubble).'
   )
 
-  dev.new(width=16/2.54,height=10/2.54)
+  dev.new(width=16/2.54,height=18/2.54)
   .$combinationsPlot()
   Figure(
     'Corer.Selection',

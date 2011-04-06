@@ -117,7 +117,7 @@ Stepper$report <- function(.){
     .$summary[,c('Term','DF','Deviance','R2','AIC','Final')],
     label = 'Stepper.Summary',
     caption= "Summary of stepwise selection. Model terms are listed in the order of acceptance to the model. AIC: Akaike Information Criterion; *: Term included in final model.",
-    header = c('Term','DF','Deviance','Deviance explained (%)','AIC','')
+    header = c('Term','DF','Deviance','Deviance<br>explained (%)','AIC','')
   )
 
   #print(ggplot(melt(.$indices,id.vars='fyear'),aes(x=fyear,y=value,group=variable,shape=variable,linetype=variable)) + geom_point() + geom_line() + scale_shape_manual(values=1:30) + labs(x='Fishing year',y='Coefficient',shape="Term",linetype="Term"))

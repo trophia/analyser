@@ -66,30 +66,21 @@ Diagnoser$areaYearImpliedPlot <- function(.){
   ) 
 }
 
-Diagnoser$areaMonthResidPlot <- function(.){
-  sp = ddply(.$data,.(area,month),function(sub)with(sub,data.frame(mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
-  dev.new(width=16/2.54,height=16/2.54)
-  print(ggplot(sp,aes(x=month,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
-    geom_hline(yintercept=1,linetype=3,colour='grey')+
-    facet_wrap(~area)+labs(x='Month',y='Multiplier'))
-  Figure(
-    "Diagnoser.areaMonthResidPlot",
-    "Mean of the residuals in each month in each area. The error bars indicate one standard error of residuals."
-  ) 
-}
 Diagnoser$areaMonthImpliedPlot <- function(.){
   if('fit.month' %in% names(.$data)) oa = ddply(.$data,.(month),function(sub)with(sub,data.frame(est=mean(fit.month))))
   else oa = ddply(.$data,.(month),function(sub)with(sub,data.frame(est=0)))
-  oa$month =  as.integer(as.character(oa$month))
+  oa$month =  as.integer(oa$month)
 
   if('fit.month' %in% names(.$data)) sp = ddply(.$data,.(area,month),function(sub)with(sub,data.frame(mean=mean(fit.month+residual),se=sd(residual)/sqrt(length(residual)))))
   else sp = ddply(.$data,.(area,month),function(sub)with(sub,data.frame(mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
-  sp$month =  as.integer(as.character(sp$month))
+  sp$month =  as.integer(sp$month)
 
   dev.new(width=16/2.54,height=16/2.54)
-  print(ggplot(sp,aes(x=month,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
-    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(est)),data=oa,col='grey60')+ylim(c(0,max(exp(sp$mean))))+
-    facet_wrap(~area)+labs(x='Month',y='Multiplier'))
+  print(
+    ggplot(sp,aes(x=month,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
+      geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(est)),data=oa,col='grey60')+scale_x_continuous(breaks=seq(1,12,2),labels=levels(.$data$month)[seq(1,12,2)])+
+      facet_wrap(~area)+labs(x='Month',y='Multiplier')
+  )
   Figure(
     "Diagnoser.areaMonthImpliedPlot",
     "Implied indices of CPUE for each area in each month. Implied indices are calculated as the model's month coefficients plus the mean of the residuals
@@ -97,26 +88,6 @@ Diagnoser$areaMonthImpliedPlot <- function(.){
   ) 
 }
 
-Diagnoser$posMonthResidPlot <- function(.){
-  data = ddply(.$data,.(latt,lont,month),function(sub)with(sub,data.frame(mean=mean(residual))))
-
-  data = subset(data,latt<(-30) & latt>(-50) & lont>160 & lont<200)
-  latr = quantile(data$latt,p=c(0.01,0.99),na.rm=T)
-  lonr = quantile(data$lont,p=c(0.01,0.99),na.rm=T)
-
-  dev.new(width=16/2.54,height=16/2.54)
-  print(
-    ggplot(data,aes(x=lont,y=latt)) + geom_polygon(data=clipPolys(coast,ylim=latr,xlim=lonr),aes(x=X,y=Y,group=PID),fill='white',colour="grey80") + 
-      geom_tile(aes(fill=mean))+scale_fill_gradient2(low="blue",mid='grey',high="red")+facet_wrap(~month)+labs(x='',y='') + 
-      scale_y_continuous("",limits=latr,expand=c(0,0)) + 
-      scale_x_continuous("",limits=lonr,expand=c(0,0)) +
-      coord_map(project="mercator")
-  )
-  Figure(
-    "Diagnoser.posMonthResidPlot",
-    "Mean of the residuals in each month at each position. The error bars indicate one standard error of residuals."
-  ) 
-}
 Diagnoser$posMonthImpliedPlot <- function(.){
   #Determine which terms to adjust for
   terms = c('residual')
@@ -134,14 +105,14 @@ Diagnoser$posMonthImpliedPlot <- function(.){
   dev.new(width=16/2.54,height=16/2.54)
   print (
     ggplot(data,aes(x=lont,y=latt)) + geom_polygon(data=clipPolys(coast,ylim=latr,xlim=lonr),aes(x=X,y=Y,group=PID),fill='white',colour="grey80") + 
-      geom_tile(aes(fill=mean))+scale_fill_gradient2(low="blue",mid='grey',high="red")+facet_wrap(~month)+labs(x='',y='') + 
+      geom_tile(aes(fill=mean))+scale_fill_gradient2('Coefficient',low="blue",mid='grey',high="red")+facet_wrap(~month)+labs(x='',y='') + 
       scale_y_continuous("",limits=latr,expand=c(0,0)) + 
       scale_x_continuous("",limits=lonr,expand=c(0,0)) +
       coord_map(project="mercator")
   )
   Figure(
     "Diagnoser.posMonthImpliedPlot",
-    "Implied indices of CPUE for each position in each month. Implied indices are calculated as the model's area or month coefficients (if any) plus the mean of the residuals
+    "Implied coefficients of CPUE for each position in each month. Implied coefficients are calculated as the model's area or month coefficients (if any) plus the mean of the residuals
     in each position in each month."
   ) 
 }

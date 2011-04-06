@@ -57,7 +57,7 @@ Diagnoser$areaYearImpliedPlot <- function(.){
   sp$fyear = as.integer(as.character(sp$fyear))
   dev.new(width=16/2.54,height=16/2.54)
   print(ggplot(sp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
-    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(est)),data=oa,col='grey')+
+    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(est)),data=oa,col='grey')+ylim(c(0,max(exp(sp$mean))))+
     facet_wrap(~area)+labs(x='Fishing year',y='Multiplier'))
   Figure(
     "Diagnoser.areaYearImpliedPlot",
@@ -78,7 +78,7 @@ Diagnoser$areaMonthResidPlot <- function(.){
   ) 
 }
 Diagnoser$areaMonthImpliedPlot <- function(.){
-  if('fit.month' %in% names(.$data)) oa = ddply(.$data,.(month),function(sub)with(sub,data.frame(est=mean(rowSums(sub[,terms])))))
+  if('fit.month' %in% names(.$data)) oa = ddply(.$data,.(month),function(sub)with(sub,data.frame(est=mean(fit.month))))
   else oa = ddply(.$data,.(month),function(sub)with(sub,data.frame(est=0)))
   oa$month =  as.integer(as.character(oa$month))
 
@@ -88,7 +88,7 @@ Diagnoser$areaMonthImpliedPlot <- function(.){
 
   dev.new(width=16/2.54,height=16/2.54)
   print(ggplot(sp,aes(x=month,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
-    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(est)),data=oa,col='grey')+
+    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(est)),data=oa,col='grey60')+ylim(c(0,max(exp(sp$mean))))+
     facet_wrap(~area)+labs(x='Month',y='Multiplier'))
   Figure(
     "Diagnoser.areaMonthImpliedPlot",

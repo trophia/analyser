@@ -151,7 +151,8 @@ ReportFinish <- function(){
   cat(inp,file='reportLinked.html')
 
   #system('mogrify -density 200 -format png *.pdf')
-  #system('wkhtmltopdf reportLinked.html report.pdf')
+  
+  system('wkhtmltopdf reportLinked.html report.pdf')
 }
 
 

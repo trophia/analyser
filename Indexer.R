@@ -79,8 +79,15 @@ Indexer$init <- function(.){
 
   #Merge in others
   if(!is.null(.$others)){
+    #For others with '.index' in their name, normalise to a geometic mean of 1 for shared time period
+    #for(name in names(.$others){
+    #  if(grepl('.index',name)){
+	#Determine years where overlap
+	#overlap = .$others$fyear[.$others$fyear %in% .$indices$fyear]
+	#Get 
+     # }
+    #}
     .$indices = if(is.null(.$indices)) .$others else merge(.$indices,.$others,by='fyear',all=T)
-    #!todo for others with '.index' in their name normalise to a geometic mean of 1 for shared time period
   }
 }
 
@@ -90,8 +97,8 @@ Indexer$comparisonPlot <- function(.,indices=NULL,match=NULL,ylab=''){
   dev.new(width=16/2.54,height=13/2.54)
   data = melt(.$indices[c('fyear',indices)],id.vars='fyear')
   data$fyear = as.integer(as.character(data$fyear))
-  ggplot(data,aes(x=fyear,y=value,group=variable,shape=variable)) + geom_point(size=4) + geom_line() + scale_shape_manual(values=1:30) + 
-    labs(x='Fishing year',y=ylab,shape='') + ylim(0,max(data$value))
+  ggplot(data,aes(x=fyear,y=value,group=variable,shape=variable)) + geom_point(size=2.5) + geom_line() + scale_shape_manual(values=1:30) + 
+    labs(x='Fishing year',y=ylab,shape='') + ylim(0,max(data$value,na.rm=T))
 }
 
 Indexer$report <- function(.,to=""){

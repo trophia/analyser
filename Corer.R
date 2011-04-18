@@ -4,19 +4,22 @@ Corer <- Worker$proto(
   data = NULL,
   trips = NULL, #Minimum number of trips in a year
   years = NULL,  #Minimum number of qualifying years
+  catch = NULL, #The minumum catch for a trip to qualify
 
   summary = NULL
 )
 
-Corer$new <- function(.,data,trips=NULL,years=NULL){
-  inst = .$proto(data=data,trips=trips,years=years)
+Corer$new <- function(.,data,trips=NULL,years=NULL,catch=NULL){
+  inst = .$proto(data=data,trips=trips,years=years,catch=catch)
   inst$init()
   inst
 }
 
 Corer$init <- function(.){
+  #If a catch threshold for a trip is specified then apply it
+  data = if(is.null(.$catch)) .$data else subset(.$data,catch>=.$catch)
   #Calculate trips per year per vessel
-  temp = aggregate(list(trips=.$data$trip),list(vessel=.$data$vessel,fyear=.$data$fyear),function(trip)length(unique(trip)))
+  temp = aggregate(list(trips=data$trip),list(vessel=data$vessel,fyear=data$fyear),function(trip)length(unique(trip)))
   #Calculate numbers of vessels and catch using alternative qualification criteria
   vesselsList = list()
   .$combinations = ddply(expand.grid(trips=1:10,years=1:20),.(trips,years),function(sub){
@@ -74,12 +77,15 @@ Corer$report <- function(.){
   Html('<p>')
 
   chosen = subset(.$combinations,trips==.$trips & years==.$years)
-  Html(
-    'Alternative core vessel selection criteria were investigated by considering the reduction in the number of vessels and percentage of catch (@Corer.Selection). 
+  Html('
+    Alternative core vessel selection criteria were investigated by considering the reduction in the number of vessels and percentage of catch (@Corer.Selection). 
     The most appropriate combination of criteria was considered to be to define the core fleet as those vessels that had fished for at least ',.$trips, ' trips in each of at least ',.$years,' years. 
+  ')
+  if(!is.null(.$catch)) Html('To quality, trips were required to have recorded at least ',.$catch,'kg of catch.')
+  Html('
     These criteria resulted in a core fleet size of ',chosen$vessels,' vessels which took ',round(chosen$catch*100),'% of the catch (@Corer.Selection). 
-    A histogram of the number of years in which each core vessel had data in the dataset is provided (@Corer.Histogram) as is the overlap of data among core vessels (@Corer.Bubble).'
-  )
+    A histogram of the number of years in which each core vessel had data in the dataset is provided (@Corer.Histogram) as is the overlap of data among core vessels (@Corer.Bubble).
+  ')
 
   dev.new(width=16/2.54,height=18/2.54)
   .$combinationsPlot()

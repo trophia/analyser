@@ -34,9 +34,9 @@ Diagnoser$residPlot <- function(.,to){
     lines(bars$mids,dnorm(bars$mids),col='blue',lty=2)
     qqnorm(residual,main="",ylab='Standardised residual sample quantile',xlab='Standardised residual theoretical quantile',xlim=xrange)
     abline(a=0,b=1,col='blue',lty=2)
-    plot(fitted,residual,ylab='Standardised residual',xlab='Fitted value')
+    plot(fitted,residual,ylab='Standardised residual',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
     abline(h=0,col='blue',lty=2)
-    plot(fitted,observed,ylab='Observed value',xlab='Fitted value')
+    plot(fitted,observed,ylab='Observed value',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
     abline(a=0,b=1,col='blue',lty=2)
   })
   Figure(
@@ -58,41 +58,35 @@ Diagnoser$areaYearImpliedPlot <- function(.){
   dev.new(width=16/2.54,height=16/2.54)
   print(ggplot(sp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
     geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(est)),data=oa,col='grey')+ylim(c(0,max(exp(sp$mean))))+
-    facet_wrap(~area)+labs(x='Fishing year',y='Multiplier'))
+    facet_wrap(~area)+labs(x='Fishing year',y='Coefficient'))
   Figure(
     "Diagnoser.areaYearImpliedPlot",
-    "Implied indices of CPUE for each area in each fishing year. Implied indices are calculated as the model's fishing year coefficients plus the mean of the residuals
-    in each fishing year in each area. The error bars indicate one standard error of residuals. The grey line indicates the model's overall fishing year index."
+    "Resdiual implied coefficients for each area in each fishing year. Implied coefficients are calculated as the sum of the fishing year coefficient plus the mean of the residuals
+    in each fishing year in each area. The error bars indicate one standard error of residuals. The grey line indicates the model's overall fishing year coefficients."
   ) 
 }
 
 Diagnoser$areaMonthImpliedPlot <- function(.){
-  #Determine which terms consider
-  terms = vector()
-  if('fit.area' %in% names(.$data)) terms = c(terms,'fit.area')
-  if('fit.month' %in% names(.$data)) terms = c(terms,'fit.month')
-  if('fit.areaMonth' %in% names(.$data)) terms = c(terms,'fit.areaMonth')
-  #Determine model fit and implied
-  if(length(terms)==0) {
-    imp = ddply(.$data,.(area,month),function(sub)with(sub,data.frame(fit=0,mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
-  }  else if(length(terms)==1) {
-    imp = ddply(.$data,.(area,month),function(sub)with(sub,data.frame(fit=mean(sub[,terms]),mean=mean(rowSums(sub[,c(terms,'residual')])),se=sd(residual)/sqrt(length(residual)))))
-  } else {
-    imp = ddply(.$data,.(area,month),function(sub)with(sub,data.frame(fit=mean(rowSums(sub[,terms])),mean=mean(rowSums(sub[,c(terms,'residual')])),se=sd(residual)/sqrt(length(residual)))))
-  }
-  imp$month = as.integer(imp$month)
-  #Plot it
+  monthBase = mean(.$data$fitted)
+  month = ddply(.$data,.(month),function(sub)with(sub,data.frame(mean=mean(fitted+residual-monthBase))))
+  month$month = as.integer(month$month)
+  
+  areaMonthBase = ddply(.$data,.(area),function(sub) with(sub,data.frame(overall=mean(fitted))))
+  areaMonth = ddply(.$data,.(area,month),function(sub) with(sub,data.frame(mean=mean(fitted+residual),se=sd(fitted+residual)/sqrt(length(residual)))))
+  areaMonth = merge(areaMonth,areaMonthBase,by='area')
+  areaMonth$mean = areaMonth$mean - areaMonth$overall
+  areaMonth$month = as.integer(areaMonth$month)
+
   dev.new(width=16/2.54,height=16/2.54)
   print(
-    ggplot(imp,aes(x=month,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
-      geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey60')+scale_x_continuous(breaks=seq(1,12,2),labels=levels(.$data$month)[seq(1,12,2)])+
+    ggplot(areaMonth,aes(x=month,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
+      geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(mean)),col='grey60',data=month)+scale_x_continuous(breaks=seq(1,12,2),labels=levels(.$data$month)[seq(1,12,2)])+
       facet_wrap(~area)+labs(x='Month',y='Coefficient')
   )
   Figure(
     "Diagnoser.areaMonthImpliedPlot",
-    "Implied coefficients for each area in each month. Implied coefficients are calculated as the model's fitted value for each
-      month and area plus residuals (black line and points). The error bars indicate one standard error of residuals. The grey line indicates the
-      models overall fit for month."
+    "Resdiual implied coefficients for area/month interactions. Implied coefficients are calculated as the mean of the sum of area and month coefficients (if any; grey line) plus residuals (black points and line). 
+      The error bars indicate one standard error of residuals."
   ) 
 }
 
@@ -126,8 +120,7 @@ Diagnoser$posMonthImpliedPlot <- function(.){
   )
   Figure(
     "Diagnoser.posMonthImpliedPlot",
-    "Implied coefficients for each position in each month. Implied coefficients are calculated as the model's area or month coefficients (if any) plus the mean of the residuals
-    in each position in each month."
+    "Residual implied coefficients for each position in each month. Implied coefficients are calculated as the mean, in each position in each month, of the sum of the model fit and the residual for each stratum."
   ) 
 }
 Diagnoser$posMonthCatchPlot <- function(.){
@@ -140,7 +133,7 @@ Diagnoser$posSeasonResidPlot <- function(.){
 }
 
 Diagnoser$depthResidPlot <- function(.){
-  quants = quantile(.$data$depth,p=seq(0.01,0.99,0.05),na.rm=T)
+  quants = unique(quantile(.$data$depth,p=seq(0.01,0.99,0.05),na.rm=T)) #Unique is sometimes necessary because some of the quantiles can be the same. This causes problems with cut below.
   mids = quants[1:(length(quants)-1)]+diff(quants)/2
   data = within(.$data,{
     depthc = mids[cut(depth,quants,labels=F)]
@@ -149,7 +142,7 @@ Diagnoser$depthResidPlot <- function(.){
   print(ggplot(sp,aes(x=depthc,y=mean))+geom_point()+geom_line()+geom_errorbar(aes(ymin=mean-se,ymax=mean+se),size=0.3,width=0.3)+labs(x='',y='')+facet_wrap(~month))
   Figure(
     "Diagnoser.depthResidPlot",
-    "Mean and standard error of residuals by depth. Each point represents 5 percentile of the depth distibution across all strata."
+    "Mean and standard error of residuals by depth by month. Each point represents a 5th percentile of the depth distibution across all strata."
   ) 
 }
 

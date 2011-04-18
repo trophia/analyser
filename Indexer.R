@@ -28,8 +28,8 @@ Indexer$init <- function(.){
       success.prop = sum(sub$catch>0)/nrow(sub),
       ratio.rate = sum(catch)/sum(effort),
       ratio.positive.rate = with(subset(sub,catch>0),sum(catch)/sum(effort)),
-      arithmetic.rate = mean(catch/effort),
-      geometric.rate = with(subset(sub,catch>0),geomean(catch/effort))
+      arithmetic.rate = with(subset(sub,effort>0),mean(catch/effort)),
+      geometric.rate = with(subset(sub,effort>0 & catch>0),geomean(catch/effort))
     )))
     indices = within(indices,{
       expected.rate = with(indices,success.prop*geometric.rate)
@@ -89,6 +89,9 @@ Indexer$init <- function(.){
     #}
     .$indices = if(is.null(.$indices)) .$others else merge(.$indices,.$others,by='fyear',all=T)
   }
+  
+  #Convert fishing year to character for table niceness
+  .$indices = within(.$indices,{fyear = as.character(fyear)})
 }
 
 Indexer$comparisonPlot <- function(.,indices=NULL,match=NULL,ylab=''){
@@ -97,8 +100,8 @@ Indexer$comparisonPlot <- function(.,indices=NULL,match=NULL,ylab=''){
   dev.new(width=16/2.54,height=13/2.54)
   data = melt(.$indices[c('fyear',indices)],id.vars='fyear')
   data$fyear = as.integer(as.character(data$fyear))
-  ggplot(data,aes(x=fyear,y=value,group=variable,shape=variable)) + geom_point(size=2.5) + geom_line() + scale_shape_manual(values=1:30) + 
-    labs(x='Fishing year',y=ylab,shape='') + ylim(0,max(data$value,na.rm=T))
+  print(ggplot(data,aes(x=fyear,y=value,group=variable,shape=variable)) + geom_point(size=2.5) + geom_line() + scale_shape_manual(values=1:30) + 
+    labs(x='Fishing year',y=ylab,shape='') + ylim(0,max(data$value,na.rm=T)))
 }
 
 Indexer$report <- function(.,to=""){

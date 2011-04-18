@@ -1,10 +1,10 @@
 report = NULL
+reportTag = NULL
 reportTables = 0
 reportFigures = 0
 reportHeadings = c(0,0,0,0,0,0,0)
 
 Html <- function(...) cat(...,file=report,sep='')
-Title <- function(text) cat('<p class="title">',text,'</p>\n',file=report)
 
 HeadingGen <- function(level,text) {
   reportHeadings[level] <<- reportHeadings[level] + 1
@@ -55,8 +55,8 @@ Table <- function(data,label,caption="",header=names(data)){
 Figure <- function(label,caption){
   reportFigures <<- reportFigures + 1
 
-  pngFilename = paste(sprintf('%03d',reportFigures),'.',label,".png",sep="")
-  pdfFilename = paste(sprintf('%03d',reportFigures),'.',label,".pdf",sep="")
+  pngFilename = paste(sprintf('Fig%03d',reportFigures),'.',label,".png",sep="")
+  pdfFilename = paste(sprintf('Fig%03d',reportFigures),'.',label,".pdf",sep="")
   #Create a PNG file for report
   pixels = par("din") * par("cra") / par("cin") 
   dev.print(png,filename=pngFilename,width=pixels[1],height=pixels[2])
@@ -67,14 +67,16 @@ Figure <- function(label,caption){
   cat("<div class='figure'><img src='",pngFilename,"' style='width:",dims[1],"cm; height:",dims[2],"cm'>\n","<p class='caption'><a id='",label,"'>Figure ",reportFigures,"</a>: ",caption,"</p></div>\n",sep='',file=report)
 }
 
-ReportStart <- function(title=NULL){
-  report <<- file('report.html','w')
+ReportStart <- function(tag,head=NULL,title=NULL,authors=NULL,date=NULL){
+    
+  report <<- file(paste(tag,'.html',sep=''),'w')
+  reportTag <<- tag
   reportTables <<- 0
   reportFigures <<- 0
   reportHeadings <<- c(0,0,0,0,0,0,0)
 
   Html('<html><head>')
-  if(!is.null(title)) Html('<title>',title,'</title>')
+  if(!is.null(head)) Html('<title>',head,'</title>')
   Html('
       <style type="text/css">
 	body {
@@ -82,6 +84,31 @@ ReportStart <- function(title=NULL){
 		text-align: justify; 
 		width: 16cm;
 	}
+
+	div.cover {
+	  page-break-after:always
+	}
+	div.cover p.warn1,
+	div.cover p.warn2 {
+	  font-weight: bold;
+	  font-size: 12pt;
+	  text-align: center;
+	}
+ 	div.cover p.title,
+	div.cover p.authors,
+	div.cover p.date {
+	  text-align: center;
+	  font-size: 14pt;
+	  margin-top: 3em;
+	  margin-bottom: 3em;
+	}
+	div.cover p.title {
+	  margin-top: 10em;
+	}
+	div.cover p.warn2 {
+	  margin-top: 15em;
+	}
+
 	h1,h2,h3,h4,h5,h6 {
 	  margin-top: 2em; 
 	  margin-bottom: 1em;
@@ -118,11 +145,32 @@ ReportStart <- function(title=NULL){
       </style>
   ')
   Html('</head><body>')
+
+  Html('<div class="cover">')
+  Html('<p class="warn1"> Draft report to the Northern Inshore Stock Assessment Working Group (NINS&nbsp;WG). For NINS&nbsp;WG discussions only. Not for release without written approval.')
+  if(!is.null(title)) Html('<p class="title">',title,'<p>')
+  if(!is.null(authors))	Html('<p class="authors">',authors,'<p>')
+  if(!is.null(date))	Html('<p class="date">',date,'<p>')
+  Html('<p class="warn2">This
+    draft report is not for publication or release in any other form,
+    unless specifically authorised in writing by the Ministry of
+    Fisheries.')
+  Html('<p class="warn3">Working
+    Group papers are works in progress whose role is to facilitate
+    the discussion of the Working Groups. They often contain preliminary
+    results that are receiving peer review for the first time and, as
+    such, may contain errors or preliminary analyses that will be
+    superseded by more rigorous work.  For these reasons, no one may
+    release information contained in Working Group papers to external
+    media. In general, Working Group papers should never be cited.
+    Exceptions may be made in rare instances by obtaining permission in
+    writing from the MFish Chief Scientist and the authors of the paper.')
+  Html('</div>')
 }
 
 ReportFinish <- function(){
   close(report)
-  inp = paste(readLines(file('report.html')),collapse='')
+  inp = paste(readLines(file(paste(reportTag,'.html',sep=''))),collapse='')
   while(1){
       begin = regexpr('@',inp)
       if(begin>0){
@@ -148,11 +196,12 @@ ReportFinish <- function(){
 	break    
       }
   }
-  cat(inp,file='reportLinked.html')
+  cat(inp,file=paste(reportTag,'.link.html',sep=''))
 
-  #system('mogrify -density 200 -format png *.pdf')
+  graphics.off()
+  system('mogrify -density 200 -format png Fig*.pdf')
   
-  system('wkhtmltopdf reportLinked.html report.pdf')
+  system(paste('wkhtmltopdf -L 20 ',reportTag,'.link.html ',reportTag,'.pdf',sep=''))
 }
 
 

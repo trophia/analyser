@@ -37,6 +37,14 @@ Influencer$report <- function(.){
     'Annual indices of CPUE as each term is succesively added to the model. The indices are normalised to an overall geometric mean of 1.'
   )
 
+  dev.new(width=16/2.54,height=16/2.54)
+  .$cdiPlotAll(done=function(term){
+    Figure(
+	paste('Influencer.',term,sep=''),
+	paste('Coefficient-distribution-influence plot for <i>',term,'</i>.',sep='')
+    )
+  })
+
   dev.new(width=16/2.54,height=13/2.54)
   molt = melt(.$influences,id.vars='level')
   molt$level = as.integer(as.character(molt$level))
@@ -53,14 +61,6 @@ Influencer$report <- function(.){
   .$stanPlot()
   Figure(
     'Influencer.Standardization',
-    'The standardization effect of the model.'
+    'Overall standardization effect of the model. The unstandardised index is based on the geometric mean of the catch per strata and is not adjusted for effort.'
   )
-
-  dev.new(width=16/2.54,height=16/2.54)
-  .$cdiPlotAll(done=function(term){
-    Figure(
-	paste('Influencer.',term,sep=''),
-	paste('Coefficient-distribution-influence plot for <i>',term,'</i>.',sep='')
-    )
-  })
 }

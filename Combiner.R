@@ -20,7 +20,7 @@ Combiner$init <- function(.){
       .$data$month = c('Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec')[.$data$month]
       .$data$month = factor(.$data$month,levels=c('Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep'),ordered=T)
     }
-    else if(is.character(.$data[,name]) & !(name %in% .$nots)){
+    else if(is.character(.$data[,name]) & !(name %in% .$nots) & sum(!is.na(.$data[,name]))>0){
       if(name %in% names(.$levels)){
 	#Use the specified levels and put everything else into other
 	.$data[!(.$data[,name] %in% .$levels[[name]]),name] = 'Other'

@@ -46,10 +46,15 @@ Stepper$init <- function(.){
   .$summary =  data.frame(Term="-",AIC=null$aic,N=length(null$residuals),DF=0,Deviance=null$deviance,R2=0.0,SDSR=NA,MASR=NA,stringsAsFactors=F)
   .$indices = data.frame(fyear=sort(unique(.$data$fyear)))
   #Keeper functions records each stepLast
-  extractCoeffs = function(model,name){
-    coeffs = summary(model)$coeff
-    index = substr(row.names(coeffs),1,nchar(name))==name
-    coeffs = c(0,coeffs[index,1])
+  extractCoeffs = function(model,term){
+    #Get coefficients
+    coeffs = model$coefficients
+    #Determine the index of the term
+    index = match(term,attr(model$terms,"term.labels"))
+    #Use model matrix to determine which coeffs are associated with this term
+    row = attr(model.matrix(model),"assign")==index
+    #Get the relevant coefficents
+    coeffs = c(0,coeffs[row])
     coeffs
   }
   stepLast = c()

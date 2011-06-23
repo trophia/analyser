@@ -23,7 +23,7 @@ Diagnoser$new <- function(.,model){
 }
 
 Diagnoser$residPlot <- function(.,to){
-  #Standardised residuals(good luck explaining the influence plot)
+  #Usual diagnostic plots
   dev.new(width=16/2.54,height=16/2.54)
   par(mfcol=c(2,2),mar=c(4,4,1,1),oma=rep(1,4))
   with(.$data,{
@@ -32,7 +32,7 @@ Diagnoser$residPlot <- function(.,to){
     xrange[2] = max(xrange[2],4)
     bars = hist(residual,probability=T,breaks=50,main="",xlab="Standardised residual",xlim=xrange,bty='o')
     lines(bars$mids,dnorm(bars$mids),col='blue',lty=2)
-    qqnorm(residual,main="",ylab='Standardised residual sample quantile',xlab='Standardised residual theoretical quantile',xlim=xrange)
+    qqnorm(residual,main="",ylab='Standardised residual sample quantile',xlab='Standardised residual theoretical quantile',xlim=xrange,cex=0.5)
     abline(a=0,b=1,col='blue',lty=2)
     plot(fitted,residual,ylab='Standardised residual',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
     abline(h=0,col='blue',lty=2)

@@ -7,7 +7,7 @@ Diagnoser <- Worker$proto(
 )
 
 Diagnoser$new <- function(.,model){
-  inst = .$proto(model)
+  inst = .$proto()
   inst$data = cbind(
     model$data,
     residual = rstandard(model),

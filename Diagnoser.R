@@ -32,7 +32,7 @@ Diagnoser$residPlot <- function(.,to){
     xrange[2] = max(xrange[2],4)
     bars = hist(residual,probability=T,breaks=50,main="",xlab="Standardised residual",xlim=xrange,bty='o')
     lines(bars$mids,dnorm(bars$mids),col='blue',lty=2)
-    qqnorm(residual,main="",ylab='Standardised residual sample quantile',xlab='Standardised residual theoretical quantile',xlim=xrange,cex=0.5)
+    qqnorm(residual,main="",ylab='Standardised residual sample quantile',xlab='Standardised residual theoretical quantile',xlim=xrange,cex=0.3,pch=16)
     abline(a=0,b=1,col='blue',lty=2)
     plot(fitted,residual,ylab='Standardised residual',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
     abline(h=0,col='blue',lty=2)
@@ -41,6 +41,34 @@ Diagnoser$residPlot <- function(.,to){
   })
   Figure(
     "Diagnoser.resids",
+    "Residual diagnostics.
+	  Top left: histogram of standardised residuals compared to standard normal distribution.',
+	  Bottom left: quantile-quantile plot of standardised residuals.
+	  Top right: fitted values versus standardised residuals.
+	  Bottom right: observed values versus fitted values."
+  ) 
+  dev.off()
+}
+
+Diagnoser$residYearPlot <- function(.,to){
+  #Plots of std.dev, skewness and kurtosis of residuals by year
+  dev.new(width=16/2.54,height=16/2.54)
+  par(mfcol=c(2,2),mar=c(4,4,1,1),oma=rep(1,4))
+  with(.$data,{
+    xrange = quantile(residual,p=c(0.001,0.999))
+    xrange[1] = min(xrange[1],-4)
+    xrange[2] = max(xrange[2],4)
+    bars = hist(residual,probability=T,breaks=50,main="",xlab="Standardised residual",xlim=xrange,bty='o')
+    lines(bars$mids,dnorm(bars$mids),col='blue',lty=2)
+    qqnorm(residual,main="",ylab='Standardised residual sample quantile',xlab='Standardised residual theoretical quantile',xlim=xrange,cex=0.5)
+    abline(a=0,b=1,col='blue',lty=2)
+    plot(fitted,residual,ylab='Standardised residual',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
+    abline(h=0,col='blue',lty=2)
+    plot(fitted,observed,ylab='Observed value',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
+    abline(a=0,b=1,col='blue',lty=2)
+  })
+  Figure(
+    "Diagnoser.residsYear",
     "Residual diagnostics.
 	  Top left: histogram of standardised residuals compared to standard normal distribution.',
 	  Bottom left: quantile-quantile plot of standardised residuals.

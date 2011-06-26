@@ -16,6 +16,61 @@ Distributioner$new <- function(.,data){
   inst
 }
 
+Distributioner$calc <- function(.){
+  data = subset(.$data,catch>0 & is.finite(catch))
+  .$var = data$catch/mean(data$catch)
+
+  modelFunc = 'd'
+  dists = list()
+  for(dist in c('lognormal','log.logistic','gamma','weibull','inverse.gaussian')){
+    dists[[dist]]$fit = tryCatch(fitdistr(var,
+      densfun = switch(dist,
+	gaussian = "normal",
+	inverse.gaussian = dinvGauss,
+	log.logistic = dllogis,
+	dist
+      ),
+      start = switch(dist,
+	inverse.gaussian = list(nu = 1, lambda = 1),
+	log.logistic = list(shape = 1, rate = 1),
+	NULL
+      )
+    ),error=function(error){print(error);return(NULL)})
+    dists[[dist]]$model = tryCatch(switch(modelFunc,
+	a = glm(catch~fyear+month+area+vessel,data=data,family=switch(dist,
+	  gaussian = gaussian(link='log'),
+	  gamma = Gamma(link='log'),
+	  inverse.gaussian = inverse.gaussian(link='log'),
+	)),
+	b = survreg(Surv(catch)~fyear+month+area+vessel,data=data,dist=switch(dist,
+	  log.logistic = 'loglogistic',
+	  dist
+	)),
+	c = vglm(catch~fyear+month+area+vessel,data=data,family=switch(dist,
+	  gaussian = gaussianff,
+	  gamma = gamma2,
+	  inverse.gaussian = inv.gaussianff,
+	  lognormal = lognormal,
+	  weibull = weibull
+	)),
+	d = switch(dist,
+	  gaussian = glm(catch~fyear+month+area+vessel,data=data,family=gaussian(link='log')),
+	  gamma = glm(catch~fyear+month+area+vessel,data=data,family=Gamma(link='log')),
+	  inverse.gaussian = glm(catch~fyear+month+area+vessel,data=data,family=inverse.gaussian(link='log')),
+	  lognormal = survreg(Surv(catch)~fyear+month+area+vessel,data=data,dist='lognormal'),
+	  weibull = survreg(Surv(catch)~fyear+month+area+vessel,data=data,dist='weibull'),
+	  log.logistic = survreg(Surv(catch)~fyear+month+area+vessel,data=data,dist='loglogistic')
+	)
+      ),error=function(error){print(error);return(NULL)})
+      dists[[dist]]$criterion = tryCatch(switch(class(dists[[dist]]$model)[1],
+	'glm' = logLik(model),
+	'survreg' = summary(model)$loglik[1],
+	'vglm' = logLik(model)
+      ),error=function(error){print(error);return(NULL)})
+    }
+    .$dists = dists
+}
+
 Distributioner$meanVariancePlot <- function(.){
   do = function(vars,row,col){
     data = ddply(.$data,vars,function(sub)with(sub,data.frame(mean=mean(catch,na.rm=T),var=var(catch,na.rm=T),n=nrow(sub))))
@@ -43,67 +98,20 @@ Distributioner$meanVariancePlot <- function(.){
 
 Distributioner$diagPlot <- function(.){
 
-  data = subset(.$data,catch>0 & is.finite(catch))
-  var = data$catch/mean(data$catch)
-
-  modelFunc = 'd'
-  dists = list()
-  for(dist in c('lognormal','log.logistic','gamma','weibull','inverse.gaussian')){
-    dists[[dist]]$fit = tryCatch(fitdistr(var,
-      densfun = switch(dist,
-	gaussian = "normal",
-	inverse.gaussian = dinvGauss,
-	log.logistic = dllogis,
-	dist
-      ),
-      start = switch(dist,
-	inverse.gaussian = list(nu = 1, lambda = 1),
-	log.logistic = list(shape = 1, rate = 1),
-	NULL
-      )
-    ),error=function(error){print(error);return(NULL)})
-    dists[[dist]]$model = tryCatch(switch(modelFunc,
-	a = glm(catch~fyear+month+area+vessel,data=data,family=switch(dist,
-	  gaussian = gaussian(),
-	  gamma = Gamma(),
-	  inverse.gaussian = inverse.gaussian(),
-	)),
-	b = survreg(Surv(catch)~fyear+month+area+vessel,data=data,dist=switch(dist,
-	  log.logistic = 'loglogistic',
-	  dist
-	)),
-	c = vglm(catch~fyear+month+area+vessel,data=data,family=switch(dist,
-	  gaussian = gaussianff,
-	  gamma = gamma2,
-	  inverse.gaussian = inv.gaussianff,
-	  lognormal = lognormal,
-	  weibull = weibull
-	)),
-	d = switch(dist,
-	  gaussian = glm(catch~fyear+month+area+vessel,data=data,family=gaussian()),
-	  gamma = glm(catch~fyear+month+area+vessel,data=data,family=Gamma()),
-	  inverse.gaussian = glm(catch~fyear+month+area+vessel,data=data,family=inverse.gaussian()),
-	  lognormal = survreg(Surv(catch)~fyear+month+area+vessel,data=data,dist='lognormal'),
-	  weibull = survreg(Surv(catch)~fyear+month+area+vessel,data=data,dist='weibull'),
-	  log.logistic = survreg(Surv(catch)~fyear+month+area+vessel,data=data,dist='loglogistic')
-	)
-      ),error=function(error){print(error);return(NULL)})
-  }
-
   dev.new(width=16/2.54,height=16/2.54)
-  par(mfrow=c(length(names(dists)),3),mar=c(0.5,5,0,0),oma=c(5,0,1,3))
-  for(dist in names(dists)){
+  par(mfrow=c(length(names(.$dists)),3),mar=c(0.5,5,0,0),oma=c(5,0,1,3))
+  for(dist in names(.$dists)){
     
-    last = dist==names(dists)[length(dists)]
+    last = dist==names(.$dists)[length(.$dists)]
 
-    fit = dists[[dist]]$fit
+    fit = .$dists[[dist]]$fit
     if(!is.null(fit)){
       #Fitted distributions
-      xlim = c(0,quantile(var,p=0.99))
-      h = hist(var,breaks=100,plot=F)
+      xlim = c(0,quantile(.$var,p=0.99))
+      h = hist(.$var,breaks=100,plot=F)
       xhist = c(min(h$breaks),h$breaks)
       yhist = c(0,h$density,0)
-      xfit = seq(min(var),max(var),length=1000)
+      xfit = seq(min(.$var),max(.$var),length=1000)
       yfit = switch(dist,
 	gaussian = dnorm(xfit,mean=fit$estimate[1],sd=fit$estimate[2]),
 	gamma = dgamma(xfit,shape=fit$estimate[1],rate=fit$estimate[2]),
@@ -128,7 +136,7 @@ Distributioner$diagPlot <- function(.){
 	  log.logistic = qllogis(qs,shape=fit$estimate[1],rate=fit$estimate[2]),
 	  rep(qs,length(xfit))
 	)
-	emp = quantile(var,qs)
+	emp = quantile(.$var,qs)
 	plot(emp~the,cex=0.5,ylab='Observed',las=1,xaxt=if(last)'s'else'n')
 	abline(0,1,col='blue',lty=2)
 	if(last) mtext('Expected',side=1,line=3,cex=0.7)
@@ -138,7 +146,7 @@ Distributioner$diagPlot <- function(.){
       if(0) plot.new()
     }
 
-    model = dists[[dist]]$model
+    model = .$dists[[dist]]$model
     if(!is.null(model)){
       type = class(model)[1]
       rs = switch(type,
@@ -183,5 +191,17 @@ Distributioner$diagPlot <- function(.){
     "
   ) 
   dev.off()
-
 }
+
+Distributioner$best <- function(.){
+  best = NULL
+  max = -Inf
+  for(dist in names(.$dists)){
+    if(.$dists[[dist]]$criterion>max){
+      best = dist
+      max = .$dists[[dist]]$criterion
+    }
+  }
+  best
+}
+

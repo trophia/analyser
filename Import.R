@@ -10,6 +10,7 @@ for(file in c(
   'Stepper.R',
   'Indexer.R',
   'Diagnoser.R',
+  'Distributioner.R',
   'influ.R',#At present, for convienience, influ is loaded as a source file (which itself is a simple copy of the influ package code) but eventually should be loaded as a package
   'Influencer.R',
 

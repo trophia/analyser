@@ -100,8 +100,8 @@ Indexer$comparisonPlot <- function(.,indices=NULL,match=NULL,ylab=''){
   dev.new(width=16/2.54,height=13/2.54)
   data = melt(.$indices[c('fyear',indices)],id.vars='fyear')
   data$fyear = as.integer(as.character(data$fyear))
-  print(ggplot(data,aes(x=fyear,y=value,group=variable,shape=variable)) + geom_point(size=2.5) + geom_line() + scale_shape_manual(values=1:30) + 
-    labs(x='Fishing year',y=ylab,shape='') + ylim(0,max(data$value,na.rm=T)))
+  print(ggplot(data,aes(x=fyear,y=value,group=variable,colour=variable,shape=variable)) + geom_point(size=2.5) + geom_line() + scale_shape_manual(values=1:30) + 
+    labs(x='Fishing year',y=ylab,colour='',shape='') + ylim(0,max(data$value,na.rm=T)) + opts(legend.position=c(0.4,0.4),legend.justification=c(1,1)))
 }
 
 Indexer$report <- function(.,to=""){

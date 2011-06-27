@@ -23,7 +23,7 @@ Distributioner$calc <- function(.){
   modelFunc = 'd'
   dists = list()
   for(dist in c('lognormal','log.logistic','gamma','weibull','inverse.gaussian')){
-    dists[[dist]]$fit = tryCatch(fitdistr(var,
+    dists[[dist]]$fit = tryCatch(fitdistr(.$var,
       densfun = switch(dist,
 	gaussian = "normal",
 	inverse.gaussian = dinvGauss,
@@ -63,9 +63,9 @@ Distributioner$calc <- function(.){
 	)
       ),error=function(error){print(error);return(NULL)})
       dists[[dist]]$criterion = tryCatch(switch(class(dists[[dist]]$model)[1],
-	'glm' = logLik(model),
-	'survreg' = summary(model)$loglik[1],
-	'vglm' = logLik(model)
+	'glm' = logLik(dists[[dist]]$model),
+	'survreg' = summary(dists[[dist]]$model)$loglik[1],
+	'vglm' = logLik(dists[[dist]]$model)
       ),error=function(error){print(error);return(NULL)})
     }
     .$dists = dists
@@ -74,7 +74,7 @@ Distributioner$calc <- function(.){
 Distributioner$meanVariancePlot <- function(.){
   do = function(vars,row,col){
     data = ddply(.$data,vars,function(sub)with(sub,data.frame(mean=mean(catch,na.rm=T),var=var(catch,na.rm=T),n=nrow(sub))))
-    data = subset(data,n>3)
+    data = subset(data,n>=10 & var>0)
     coeffs = summary(lm(log(var)~log(mean),data))$coef
     p = ggplot(data,aes(x=log(mean),y=log(var)))+geom_point(aes(size=n),shape=1,alpha=0.3)+scale_area()+
       geom_abline(intercept=coeffs[1,1],slope=coeffs[2,1])+
@@ -83,7 +83,7 @@ Distributioner$meanVariancePlot <- function(.){
       labs(size='')
     print(p,vp=subplot(row,col))
   }
-  dev.new(width=16/2.54,height=16/2.54)
+  dev.new(width=16/2.54,height=24/2.54)
   vplayout(3,1)
   do(c('fyear','month'),1,1)
   do(c('fyear','month','area'),2,1)
@@ -98,7 +98,7 @@ Distributioner$meanVariancePlot <- function(.){
 
 Distributioner$diagPlot <- function(.){
 
-  dev.new(width=16/2.54,height=16/2.54)
+  dev.new(width=16/2.54,height=20/2.54)
   par(mfrow=c(length(names(.$dists)),3),mar=c(0.5,5,0,0),oma=c(5,0,1,3))
   for(dist in names(.$dists)){
     
@@ -118,11 +118,12 @@ Distributioner$diagPlot <- function(.){
 	lognormal = dlnorm(xfit,meanlog=fit$estimate[1],sdlog=fit$estimate[2]),
 	weibull = dweibull(xfit,shape=fit$estimate[1],scale=fit$estimate[2]),
 	log.logistic = dllogis(xfit,shape=fit$estimate[1],rate=fit$estimate[2]),
+	inverse.gaussian = dinvGauss(xfit,nu=fit$estimate[1],lambda=fit$estimate[2]),
 	rep(NA,length(xfit))
       )
       plot(xhist,yhist,type="s",ylim=c(0,max(yhist,yfit)),ylab='Density',las=1,xlim=xlim,xaxt=if(last)'s'else'n')
       lines(xfit,yfit,col='blue',lty=2)
-      legend('topright',paste('LL:',round(fit$loglik)),bty='n',cex=1.2,xjust=1)
+      legend('topright',paste('LL:',round(fit$loglik)),bty='n',cex=1.1,xjust=1)
       if(last) mtext('Catch (scaled)',side=1,line=3,cex=0.7)
 
       if(0){
@@ -134,6 +135,7 @@ Distributioner$diagPlot <- function(.){
 	  lognormal = qlnorm(qs,meanlog=fit$estimate[1],sdlog=fit$estimate[2]),
 	  weibull = qweibull(qs,shape=fit$estimate[1],scale=fit$estimate[2]),
 	  log.logistic = qllogis(qs,shape=fit$estimate[1],rate=fit$estimate[2]),
+	  inverse.gaussian = qinvGauss(qs,nu=fit$estimate[1],lambda=fit$estimate[2]),
 	  rep(qs,length(xfit))
 	)
 	emp = quantile(.$var,qs)
@@ -154,21 +156,22 @@ Distributioner$diagPlot <- function(.){
 	'survreg' = residuals(model,type='deviance'),
 	'vglm' = residuals(model,type='deviance')[,1]
       )
+      rs = rs - mean(rs)
       logLike = switch(type,
 	'glm' = logLik(model),
 	'survreg' = summary(model)$loglik[1],
 	'vglm' = logLik(model)
       )
-      #aic = extractAIC(model)[2]
+      aic = extractAIC(model)[2]
 
       h = hist(rs,breaks=100,plot=F)
       xhist = c(min(h$breaks),h$breaks)
       yhist = c(0,h$density,0)
       xfit = seq(min(rs),max(rs),length=1000)
       yfit =  dnorm(xfit)
-      plot(xhist,yhist,type="s",ylim=c(0,max(yhist,yfit)*1.2),ylab='Denisty',las=1,xlim=c(-4,4),xaxt=if(last)'s'else'n')
+      plot(xhist,yhist,type="s",ylim=c(0,max(yhist,yfit)*1.3),ylab='Denisty',las=1,xlim=c(-4,4),xaxt=if(last)'s'else'n')
       lines(xfit,yfit,col='blue',lty=2)
-      legend('topright',c(paste('LL:',round(logLike))),bty='n',cex=1.2,xjust=1) #,paste('AIC:',round(aic))
+      legend('topright',c(paste('LL:',round(logLike)),paste('AIC:',round(aic))),bty='n',cex=1.1,xjust=1)
       if(last) mtext('Stand. resid.',side=1,line=3,cex=0.7)
 
       qqnorm(rs,cex=0.5,main='',xlim=c(-4,4),ylab='Observed',xaxt=if(last)'s'else'n')

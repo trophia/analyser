@@ -12,7 +12,7 @@ Diagnoser$new <- function(.,model){
     model$data,
     residual = rstandard(model),
     predict(model,type='terms',se.fit=T),
-    observed = log(model$data$catch),
+    observed = model$data$catch,
     fitted = fitted(model)
   )
   inst$data$residual = inst$data$residual-mean(inst$data$residual)
@@ -158,13 +158,16 @@ Diagnoser$posSeasonResidPlot <- function(.){
 }
 
 Diagnoser$depthResidPlot <- function(.){
-  quants = unique(quantile(.$data$depth,p=seq(0.01,0.99,0.05),na.rm=T)) #Unique is sometimes necessary because some of the quantiles can be the same. This causes problems with cut below.
-  mids = quants[1:(length(quants)-1)]+diff(quants)/2
+  #breaks = unique(quantile(.$data$depth,p=seq(0.01,0.99,0.05),na.rm=T)) #Unique is sometimes necessary because some of the quantiles can be the same. This causes problems with cut below.
+  lo = quantile(.$data$depth,p=0.01,na.rm=T)
+  hi = quantile(.$data$depth,p=0.99,na.rm=T)
+  breaks = seq(lo,hi,(hi-lo)/30)
+  mids = breaks[1:(length(breaks)-1)]+diff(breaks)/2
   data = within(.$data,{
-    depthc = mids[cut(depth,quants,labels=F)]
+    depthc = mids[cut(depth,breaks,labels=F)]
   })
   sp = ddply(data,.(depthc,month),function(sub)with(sub,data.frame(mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
-  print(ggplot(sp,aes(x=depthc,y=mean))+geom_point()+geom_line()+geom_errorbar(aes(ymin=mean-se,ymax=mean+se),size=0.3,width=0.3)+labs(x='',y='')+facet_wrap(~month))
+  print(ggplot(sp,aes(x=depthc,y=mean))+geom_point()+geom_line()+geom_errorbar(aes(ymin=mean-se,ymax=mean+se),size=0.3,width=0.3)+labs(x='',y='')+facet_wrap(~month)+geom_hline(yintercept=0,col='grey',linetype=2))
   Figure(
     "Diagnoser.depthResidPlot",
     "Mean and standard error of residuals by depth by month. Each point represents a 5th percentile of the depth distibution across all strata."

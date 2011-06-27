@@ -4,7 +4,7 @@ Influencer <- Influence$proto()
 
 Influencer$new <- function(.,model){
   #As a temporary kludge, create log(catch) so unstandardised index is clauclated OK
-  model$model[,'log(catch)'] = log(model$model$catch)
+  if(!('log(catch)' %in% names(model$model))) model$model[,'log(catch)'] = log(model$model$catch)
   inst =.$proto(model=model,response='log(catch)',focus=NULL)
   inst$init()
   #Set some options

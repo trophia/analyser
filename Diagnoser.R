@@ -15,6 +15,7 @@ Diagnoser$new <- function(.,model){
     observed = log(model$data$catch),
     fitted = fitted(model)
   )
+  inst$data$residual = inst$data$residual-mean(inst$data$residual)
   inst$data = within(inst$data,{
     latt = round(lat,1)-0.05
     lont = round(lon,1)+0.05
@@ -78,14 +79,27 @@ Diagnoser$residMomentsPlot <- function(.,to){
   dev.off()
 }
 
+Diagnoser$implieds <- function(.,bys,fitteds){
+  terms = vector()
+  for(term in fitteds){
+    if(paste('fit.',term,sep='') %in% names(.$data)) terms = c(terms,paste('fit.',term,sep=''))
+  }
+  if(length(terms)==0) {
+    imp = ddply(.$data,bys,function(sub)with(sub,data.frame(fit=0,mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
+  }  else if(length(terms)==1) {
+    imp = ddply(.$data,bys,function(sub)with(sub,data.frame(fit=mean(sub[,terms]),mean=mean(rowSums(sub[,c(terms,'residual')])),se=sd(residual)/sqrt(length(residual)))))
+  } else {
+    imp = ddply(.$data,bys,function(sub)with(sub,data.frame(fit=mean(rowSums(sub[,terms])),mean=mean(rowSums(sub[,c(terms,'residual')])),se=sd(residual)/sqrt(length(residual)))))
+  }
+  imp
+}
+
 Diagnoser$areaYearImpliedPlot <- function(.){
-  oa = ddply(.$data,.(fyear),function(sub)with(sub,data.frame(est=mean(fit.fyear))))
-  oa$fyear = as.integer(as.character(oa$fyear))
-  sp = ddply(.$data,.(area,fyear),function(sub)with(sub,data.frame(mean=mean(fit.fyear+residual),se=sd(residual)/sqrt(length(residual)))))
-  sp$fyear = as.integer(as.character(sp$fyear))
+  imp = .$implieds(bys=c('area','fyear'),fitteds=c('fyear'))
+  imp$fyear = as.integer(as.character(imp$fyear))
   dev.new(width=16/2.54,height=16/2.54)
-  print(ggplot(sp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
-    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(est)),data=oa,col='grey')+ylim(c(0,max(exp(sp$mean))))+
+  print(ggplot(imp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
+    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey')+ylim(c(0,max(exp(imp$mean))))+
     facet_wrap(~area)+labs(x='Fishing year',y='Coefficient'))
   Figure(
     "Diagnoser.areaYearImpliedPlot",
@@ -95,21 +109,15 @@ Diagnoser$areaYearImpliedPlot <- function(.){
 }
 
 Diagnoser$areaMonthImpliedPlot <- function(.){
-  monthBase = mean(.$data$fitted)
-  month = ddply(.$data,.(month),function(sub)with(sub,data.frame(mean=mean(fitted+residual-monthBase))))
-  month$month = as.integer(month$month)
-  
-  areaMonthBase = ddply(.$data,.(area),function(sub) with(sub,data.frame(overall=mean(fitted))))
-  areaMonth = ddply(.$data,.(area,month),function(sub) with(sub,data.frame(mean=mean(fitted+residual),se=sd(fitted+residual)/sqrt(length(residual)))))
-  areaMonth = merge(areaMonth,areaMonthBase,by='area')
-  areaMonth$mean = areaMonth$mean - areaMonth$overall
-  areaMonth$month = as.integer(areaMonth$month)
-
+  imp = .$implieds(bys=c('area','month'),fitteds=c('month'))
+  imp$monthi = as.integer(imp$month)
   dev.new(width=16/2.54,height=16/2.54)
   print(
-    ggplot(areaMonth,aes(x=month,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
-      geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(mean)),col='grey60',data=month)+scale_x_continuous(breaks=seq(1,12,2),labels=levels(.$data$month)[seq(1,12,2)])+
-      facet_wrap(~area)+labs(x='Month',y='Coefficient')
+    ggplot(imp,aes(x=monthi,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
+      geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey60')+
+      ylim(c(0,max(exp(imp$mean))))+scale_x_continuous(breaks=1:12,labels=levels(imp$month))+
+      facet_wrap(~area)+labs(x='Month',y='Coefficient')+
+      opts(axis.text.x=theme_text(angle=90))
   )
   Figure(
     "Diagnoser.areaMonthImpliedPlot",
@@ -119,18 +127,7 @@ Diagnoser$areaMonthImpliedPlot <- function(.){
 }
 
 Diagnoser$posMonthImpliedPlot <- function(.){
-  #Determine which terms to adjust for
-  terms = vector()
-  if('fit.area' %in% names(.$data)) terms = c(terms,'fit.area')
-  if('fit.month' %in% names(.$data)) terms = c(terms,'fit.month')
-  if('fit.areaMonth' %in% names(.$data)) terms = c(terms,'fit.areaMonth')
-  if(length(terms)==0) {
-    imp = ddply(.$data,.(latt,lont,month),function(sub)with(sub,data.frame(fit=0,mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
-  }  else if(length(terms)==1) {
-    imp = ddply(.$data,.(latt,lont,month),function(sub)with(sub,data.frame(fit=mean(sub[,terms]),mean=mean(rowSums(sub[,c(terms,'residual')])),se=sd(residual)/sqrt(length(residual)))))
-  } else {
-    imp = ddply(.$data,.(latt,lont,month),function(sub)with(sub,data.frame(fit=mean(rowSums(sub[,terms])),mean=mean(rowSums(sub[,c(terms,'residual')])),se=sd(residual)/sqrt(length(residual)))))
-  }
+  imp = .$implieds(bys=c('latt','lont','month'),fitteds=c('area','month','areaMonth'))
   #Determine suitable lt and lon ranges
   imp = subset(imp,latt<(-30) & latt>(-50) & lont>160 & lont<200)
   latr = quantile(imp$latt,p=c(0.01,0.99),na.rm=T)

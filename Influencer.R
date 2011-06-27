@@ -3,7 +3,9 @@
 Influencer <- Influence$proto()
 
 Influencer$new <- function(.,model){
-  inst =.$proto(model=model,response=NULL,focus=NULL)
+  #As a temporary kludge, create log(catch) so unstandardised index is clauclated OK
+  model$model[,'log(catch)'] = log(model$model$catch)
+  inst =.$proto(model=model,response='log(catch)',focus=NULL)
   inst$init()
   #Set some options
   inst$orders['vessel'] = 'coef'

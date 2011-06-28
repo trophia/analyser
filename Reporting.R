@@ -204,5 +204,7 @@ ReportFinish <- function(){
   system(paste('wkhtmltopdf -L 20 ',reportTag,'.link.html ',reportTag,'.pdf',sep=''))
 }
 
-
+File <- function(name,table){
+	write.table(name,table))
+}
 

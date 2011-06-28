@@ -64,9 +64,11 @@ Indexer$init <- function(.){
     model = .$models[[name]]
     coef = coeffs(model,'fyear')
     index = exp(coef-mean(coef))
+    se = ses(model,'fyear')
     indices = data.frame(
       fyear = sort(unique(model$data$fyear)),
-      index = index
+      index = index,
+      se = se
     )
     rateBase = with(model$data,geomean(catch/effort))
     indices = within(indices,{

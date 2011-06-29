@@ -205,6 +205,7 @@ ReportFinish <- function(){
 }
 
 File <- function(name,table){
-	write.table(name,table))
+	write.table(table,name,row.names=F,quote=F)
 }
+
 

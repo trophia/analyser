@@ -15,7 +15,7 @@ Diagnoser$new <- function(.,model){
     observed = model$data$catch,
     fitted = fitted(model)
   )
-  inst$data$residual = inst$data$residual-mean(inst$data$residual)
+  inst$data$residual = inst$data$residual-mean(inst$data$residual,na.rm=T)
   inst$data = within(inst$data,{
     latt = round(lat,1)-0.05
     lont = round(lon,1)+0.05
@@ -29,7 +29,7 @@ Diagnoser$residPlot <- function(.,to){
   dev.new(width=16/2.54,height=16/2.54)
   par(mfcol=c(2,2),mar=c(4,4,1,1),oma=rep(1,4))
   with(.$data,{
-    xrange = quantile(residual,p=c(0.001,0.999))
+    xrange = quantile(residual,p=c(0.001,0.999),na.rm=T)
     xrange[1] = min(xrange[1],-4)
     xrange[2] = max(xrange[2],4)
     bars = hist(residual,probability=T,breaks=50,main="",xlab="Standardised residual",xlim=xrange,bty='o')
@@ -38,7 +38,7 @@ Diagnoser$residPlot <- function(.,to){
     abline(a=0,b=1,col='blue',lty=2)
     plot(fitted,residual,ylab='Standardised residual',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
     abline(h=0,col='blue',lty=2)
-    plot(fitted,observed,ylab='Observed value',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
+    plot(fitted,log(observed),ylab='Observed value',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
     abline(a=0,b=1,col='blue',lty=2)
   })
   Figure(

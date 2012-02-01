@@ -28,16 +28,32 @@ Influencer$report <- function(.){
     caption = 'Summary of the influence of each term in the standardisation model.'
   )
 
-  dev.new(width=16/2.54,height=16/2.54)
-  molt = melt(.$indices[,c(1,6:ncol(.$indices))],id.vars='level')
-  molt$level = as.integer(as.character(molt$level))
-  print(
-    ggplot(molt,aes(x=level,y=value,group=variable,shape=variable)) + geom_point(size=4) + geom_line() + scale_shape_manual(values=1:30) + 
-      labs(x='Fishing year',y='CPUE Index',shape='') + ylim(0,max(molt$value)) + geom_hline(yintercept=1,col='grey')
+  dev.new(width=16/2.54,height=13/2.54)
+  .$stanPlot()
+  Figure(
+    'Influencer.Standardization',
+    'Overall standardization effect of the model. The unstandardised index is based on the geometric mean of the catch per strata and is not adjusted for effort.'
   )
+
+  dev.new(width=16/2.54,height=16/2.54)
+  influ$stepPlot()
   Figure(
     'Influencer.Step',
     'Annual indices of CPUE as each term is succesively added to the model. The indices are normalised to an overall geometric mean of 1.'
+  )
+
+  dev.new(width=16/2.54,height=13/2.54)
+  influ$influPlot()
+  Figure(
+    'Influencer.Influence',
+    'Annual influence for each term in the model.'
+  )
+
+  dev.new(width=16/2.54,height=13/2.54)
+  influ$stepAndInfluPlot()
+  Figure(
+    'Influencer.StepAndInfluence',
+    'Step and influence plot'
   )
 
   dev.new(width=16/2.54,height=16/2.54)
@@ -48,22 +64,4 @@ Influencer$report <- function(.){
     )
   })
 
-  dev.new(width=16/2.54,height=13/2.54)
-  molt = melt(.$influences,id.vars='level')
-  molt$level = as.integer(as.character(molt$level))
-  print(
-    ggplot(molt,aes(x=level,y=exp(value),group=variable,shape=variable)) + geom_point(size=4) + geom_line() + scale_shape_manual(values=1:30) + 
-      labs(x='Fishing year',y='Influence',shape='') + ylim(0,max(exp(molt$value))) + geom_hline(yintercept=1,col='grey')
-  )
-  Figure(
-    'Influencer.Influence',
-    'Annual influence for each term in the model.'
-  )
-
-  dev.new(width=16/2.54,height=13/2.54)
-  .$stanPlot()
-  Figure(
-    'Influencer.Standardization',
-    'Overall standardization effect of the model. The unstandardised index is based on the geometric mean of the catch per strata and is not adjusted for effort.'
-  )
 }

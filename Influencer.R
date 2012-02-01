@@ -1,4 +1,5 @@
 #A simple wrapper around the 'influ' package
+require(influ)
 
 Influencer <- Influence$proto()
 

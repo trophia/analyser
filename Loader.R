@@ -74,16 +74,15 @@ Loader$init <- function(.){
   ))
 }
 
-Loader$report <- function(.,to=""){
-  .$header(c('file'),to=to)
-
-  .$table(
+Loader$report <- function(.){
+  .$summary$fyear = as.character(.$summary$fyear) #Prevents 'commaring'
+  Table(
     .$summary,
+    label = 'Loader.Summary',
     caption = 'Summary of the the data read in by fishing year.',
     header = c('Fishing year','Events','Vessels','Trips',
 	      'Effort number','Effort duration (hrs)',
-	      'Records not suitable for CPUE analysis due to effort grooming'),
-    to=to
+	      'Records not suitable for CPUE analysis due to effort grooming')
   )
 }
 

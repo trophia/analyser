@@ -15,26 +15,21 @@ theme_update(
 vplayout = function(rows,cols) {grid.newpage(); pushViewport(viewport(layout=grid.layout(ncol=cols,nrow=rows)))}
 subplot = function(row,col) viewport(layout.pos.col=col,layout.pos.row=row)
 
-
 library(PBSmapping)
-data(worldLL)
+data(worldLLhigh)
 
 latr = c(-60,-30)
-lonr = c(160,180)
-coast = clipPolys(worldLL,ylim=latr,xlim=lonr)
+lonr = c(160,190)
+coast = clipPolys(worldLLhigh,ylim=latr,xlim=lonr)
 
-if(FALSE){
-  #The following are curently not used
-  load("/Trophia/Tanga/Data/shared/NZFMA.Rdata")
-  load("/Trophia/Tanga/Data/shared/NZbathy.Rdata")
-  d100 = clipPolys(as.PolySet(subset(NZbathy$ps,PID==1),projection='LL'),ylim=latr,xlim=lonr)
-  d200 = clipPolys(as.PolySet(subset(NZbathy$ps,PID==2),projection='LL'),ylim=latr,xlim=lonr)
-  d1000 = clipPolys(as.PolySet(subset(NZbathy$ps,PID==4),projection='LL'),ylim=latr,xlim=lonr)
-  stats = clipPolys(statarea.general$ps,ylim=latr,xlim=lonr)
-  fmas = clipPolys(fma.general$ps,ylim=latr,xlim=lonr)
-  statlabels = subset(calcCentroid(stats),!is.na(X) & !is.na(Y))
-  statlabels$label = statarea.general$pd$label[match(statlabels$PID,statarea.general$pd$PID)]
-}
+d100 = clipPolys(as.PolySet(subset(NZbathy$ps,PID==1),projection='LL'),ylim=latr,xlim=lonr)
+d200 = clipPolys(as.PolySet(subset(NZbathy$ps,PID==2),projection='LL'),ylim=latr,xlim=lonr)
+d500 = clipPolys(as.PolySet(subset(NZbathy$ps,PID==3),projection='LL'),ylim=latr,xlim=lonr)
+d1000 = clipPolys(as.PolySet(subset(NZbathy$ps,PID==4),projection='LL'),ylim=latr,xlim=lonr)
+stats = clipPolys(statarea.general$ps,ylim=latr,xlim=lonr)
+fmas = clipPolys(fma.general$ps,ylim=latr,xlim=lonr)
+statlabels = subset(calcCentroid(stats),!is.na(X) & !is.na(Y))
+statlabels$label = statarea.general$pd$label[match(statlabels$PID,statarea.general$pd$PID)]
 
 Worker <- proto(
   label = "Worker"

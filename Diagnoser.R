@@ -6,21 +6,45 @@ Diagnoser <- Worker$proto(
   model = NULL
 )
 
-Diagnoser$new <- function(.,model){
+Diagnoser$new <- function(.,model,data=NULL){
   inst = .$proto()
-  inst$data = cbind(
-    model$data,
-    residual = rstandard(model),
-    predict(model,type='terms',se.fit=T),
-    observed = model$data$catch,
-    fitted = fitted(model)
-  )
-  inst$data$residual = inst$data$residual-mean(inst$data$residual,na.rm=T)
-  inst$data = within(inst$data,{
+  
+  #Initialise model and data
+  inst$model = model
+  if(is.null(data)) data = model$data
+  if(is.null(data)) data = model.frame(model)
+  
+  #Add observed, fitted, standardised residual
+  type = class(model)[1]
+  if(type=='glm'){
+    data = cbind(
+      data,
+      observed = data$catch,
+      fitted = fitted(model),
+      residual = rstandard(model)
+    )
+  }
+  if(type=='survreg'){
+    data = cbind(
+      data,
+      observed = data$catch,
+      fitted = predict(model,type='response'),
+      residual = residuals(model,type='deviance')
+    )
+  }
+  #Calculate term effects
+  preds = as.data.frame(predict(model,type='terms',se.fit=T)$fit)
+  names(preds) = paste('fit.',names(preds),sep='')
+  data = cbind(data,preds)
+  #Some adjustments
+  data = within(data,{
+    residual = residual-mean(residual,na.rm=T)
     latt = round(lat,1)-0.05
     lont = round(lon,1)+0.05
     season = factor(c('Su','Su','Au','Au','Au','Wi','Wi','Wi','Sp','Sp','Sp','Su')[month],levels=c('Sp','Su','Au','Wi'),ordered=T)
   })
+  inst$data = data
+  
   inst
 }
 
@@ -36,9 +60,9 @@ Diagnoser$residPlot <- function(.,to){
     lines(bars$mids,dnorm(bars$mids),col='blue',lty=2)
     qqnorm(residual,main="",ylab='Standardised residual sample quantile',xlab='Standardised residual theoretical quantile',xlim=xrange,cex=0.3,pch=16)
     abline(a=0,b=1,col='blue',lty=2)
-    plot(fitted,residual,ylab='Standardised residual',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
+    plot(fitted,residual,log='x',ylab='Standardised residual',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
     abline(h=0,col='blue',lty=2)
-    plot(fitted,log(observed),ylab='Observed value',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
+    plot(fitted,observed,log='xy',ylab='Observed value',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
     abline(a=0,b=1,col='blue',lty=2)
   })
   Figure(
@@ -95,12 +119,12 @@ Diagnoser$implieds <- function(.,bys,fitteds){
 }
 
 Diagnoser$areaYearImpliedPlot <- function(.){
-  imp = .$implieds(bys=c('area','fyear'),fitteds=c('fyear'))
+  imp = .$implieds(bys=c('area','fyear'),fitteds=c('area','fyear'))
   imp$fyear = as.integer(as.character(imp$fyear))
-  dev.new(width=16/2.54,height=16/2.54)
+  dev.new(width=26/2.54,height=17/2.54)
   print(ggplot(imp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
     geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey')+ylim(c(0,max(exp(imp$mean))))+
-    facet_wrap(~area)+labs(x='Fishing year',y='Coefficient'))
+    facet_wrap(~area,scales='free_y')+labs(x='Fishing year',y='Coefficient'))
   Figure(
     "Diagnoser.areaYearImpliedPlot",
     "Resdiual implied coefficients for each area in each fishing year. Implied coefficients are calculated as the sum of the fishing year coefficient plus the mean of the residuals
@@ -109,19 +133,20 @@ Diagnoser$areaYearImpliedPlot <- function(.){
 }
 
 Diagnoser$areaMonthImpliedPlot <- function(.){
-  imp = .$implieds(bys=c('area','month'),fitteds=c('month'))
+  imp = .$implieds(bys=c('area','month'),fitteds=c('area','month','areaMonth'))
   imp$monthi = as.integer(imp$month)
-  dev.new(width=16/2.54,height=16/2.54)
+  dev.new(width=26/2.54,height=17/2.54)
   print(
     ggplot(imp,aes(x=monthi,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
       geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey60')+
       ylim(c(0,max(exp(imp$mean))))+scale_x_continuous(breaks=1:12,labels=levels(imp$month))+
-      facet_wrap(~area)+labs(x='Month',y='Coefficient')+
+      facet_wrap(~area,scales='free_y')+labs(x='Month',y='Coefficient')+
       opts(axis.text.x=theme_text(angle=90))
   )
   Figure(
     "Diagnoser.areaMonthImpliedPlot",
-    "Resdiual implied coefficients for area/month interactions. Implied coefficients are calculated as the mean of the sum of area and month coefficients (if any; grey line) plus residuals (black points and line). 
+    "Resdiual implied coefficients for area/month interactions. 
+      Implied coefficients are calculated as the mean of the sum of area and month coefficients (if any; grey line) plus residuals (black points and line). 
       The error bars indicate one standard error of residuals."
   ) 
 }
@@ -135,7 +160,7 @@ Diagnoser$posMonthImpliedPlot <- function(.){
   lonr = quantile(imp$lont,p=c(0.01,0.99),na.rm=T)
   lonr = c(lonr[1]-0.5,lonr[2]+0.5)
   #Plot it
-  dev.new(width=16/2.54,height=16/2.54)
+  dev.new(width=26/2.54,height=17/2.54)
   print (
     ggplot(imp,aes(x=lont,y=latt)) + geom_polygon(data=clipPolys(coast,ylim=latr,xlim=lonr),aes(x=X,y=Y,group=PID),fill='white',colour="grey80") + 
       geom_tile(aes(fill=mean))+scale_fill_gradient2('Coefficient',low="blue",mid='grey',high="red")+facet_wrap(~month)+labs(x='',y='') + 

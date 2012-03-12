@@ -1,3 +1,6 @@
+load(paste(TangaAnalyserHome,"NZFMA.Rdata",sep=''))
+load(paste(TangaAnalyserHome,"NZbathy.Rdata",sep=''))
+
 for(file in c(
   'Worker.R',
   'Loader.R',

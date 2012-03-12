@@ -10,11 +10,10 @@ Indexer <- Worker$proto(
 
 Indexer$new <- function(.,datasets=NULL,models=NULL,others=NULL){
   inst = .$proto(datasets=datasets,models=models,others=others)
-  inst$init()
   inst
 }
 
-Indexer$init <- function(.){
+Indexer$calc <- function(.){
   #Create a data.frame that will hold all the CPUE indices that are calculated
   .$indices = NULL
 
@@ -41,36 +40,18 @@ Indexer$init <- function(.){
     .$indices = if(is.null(.$indices)) indices else merge(.$indices,indices,by='fyear',all=T)
   }
 
-  coeffs = function(model,term){
-    coeffs = summary(model)$coeff
-    rows = substr(row.names(coeffs),1,nchar(term))==term
-    c(0,coeffs[rows,1])
-  }
-  ses = function(model,term){
-    summ = summary(model)
-    V = summ$cov.scaled
-    row = substr(row.names(V),1,nchar(term))==term
-    V = V[row,row]
-    n = sum(row)+1
-    Q = matrix(-1/n, nrow=n, ncol=n-1)
-    Q[-1,] = Q[-1,] + diag(rep(1,n-1))
-    V0 = (Q%*%V) %*% t(Q)
-    se = sqrt(diag(V0))
-    se
-  }
-
   #Calculate standardised indices for models
   for(name in names(.$models)){
     model = .$models[[name]]
-    coef = coeffs(model,'fyear')
+    coef = Influencer$coeffs(model,'fyear')
     index = exp(coef-mean(coef))
-    se = ses(model,'fyear')
+    se = Influencer$ses(model,'fyear')
     indices = data.frame(
-      fyear = sort(unique(model$data$fyear)),
+      fyear = sort(unique(model.frame(model)$fyear)),
       index = index,
       se = se
     )
-    rateBase = with(model$data,geomean(catch/effort))
+    rateBase = 1#with(model$data,geomean(catch/effort))
     indices = within(indices,{
       rate = rateBase * index
     })

@@ -67,7 +67,7 @@ Figure <- function(label,caption){
   cat("<div class='figure'><img src='",pngFilename,"' style='width:",dims[1],"cm; height:",dims[2],"cm'>\n","<p class='caption'><a id='",label,"'>Figure ",reportFigures,"</a>: ",caption,"</p></div>\n",sep='',file=report)
 }
 
-ReportStart <- function(tag,head=NULL,title=NULL,authors=NULL,date=NULL){
+ReportStart <- function(tag,head=NULL){
     
   report <<- file(paste(tag,'.html',sep=''),'w')
   reportTag <<- tag
@@ -145,18 +145,26 @@ ReportStart <- function(tag,head=NULL,title=NULL,authors=NULL,date=NULL){
       </style>
   ')
   Html('</head><body>')
+}
 
+ReportWGCover = function(wg,title=NULL,authors=NULL,date=NULL){
   Html('<div class="cover">')
-  Html('<p class="warn1"> Draft report to the Northern Inshore Stock Assessment Working Group (NINS&nbsp;WG). For NINS&nbsp;WG discussions only. Not for release without written approval.')
+  Html('
+  <p class="warn1">
+       Draft report to the ',wg,'. 
+       For working group discussions only. Not for release without written approval.
+  </p>')
   if(!is.null(title)) Html('<p class="title">',title,'<p>')
   if(!is.null(authors))	Html('<p class="authors">',authors,'<p>')
   if(!is.null(date))	Html('<p class="date">',date,'<p>')
-  Html('<p class="warn2">This
-    draft report is not for publication or release in any other form,
+  Html('
+  <p class="warn2">
+    This draft report is not for publication or release in any other form,
     unless specifically authorised in writing by the Ministry of
-    Fisheries.')
-  Html('<p class="warn3">Working
-    Group papers are works in progress whose role is to facilitate
+    Agriculture and Forestry (MAF).
+  </p>
+  <p class="warn3">
+    Working Group papers are works in progress whose role is to facilitate
     the discussion of the Working Groups. They often contain preliminary
     results that are receiving peer review for the first time and, as
     such, may contain errors or preliminary analyses that will be
@@ -164,7 +172,8 @@ ReportStart <- function(tag,head=NULL,title=NULL,authors=NULL,date=NULL){
     release information contained in Working Group papers to external
     media. In general, Working Group papers should never be cited.
     Exceptions may be made in rare instances by obtaining permission in
-    writing from the MFish Chief Scientist and the authors of the paper.')
+    writing from the MAF Chief Scientist and the authors of the paper.
+  </p>')
   Html('</div>')
 }
 

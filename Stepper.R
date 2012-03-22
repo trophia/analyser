@@ -11,11 +11,16 @@ Stepper$new <- function(.,
   data,
   initial,
   terms = expression(fyear),
-  r2thresh = NULL)
-{
+  r2thresh = 0
+){
   inst = .$proto(data=data,initial=initial,terms=terms,r2thresh=r2thresh)
   inst
 }
+
+#Add a method for extracting the logLike of a survreg model so that 
+#Stepper$calc will work for those types of models
+logLik.survreg = function(model) model$loglik[2]
+fitted.survreg = function(model) predict(model,type='response')
 
 Stepper$calc <- function(.){
   #Clean data by removing records which have NAs or a indefinite (e.g. log(0)) for any terms
@@ -37,23 +42,12 @@ Stepper$calc <- function(.){
     }
   }
   .$cleaning = .$cleaning[-1,]
-
+  
   #Do stepwise selection of terms
-  null = .$initial
   .$summary =  NULL
-  .$indices = data.frame(fyear=sort(unique(.$data$fyear)))
-  #Keeper functions records each stepLast
-  extractCoeffs = function(model,term){
-    #Get coefficients
-    coeffs = model$coefficients
-    #Determine the index of the term
-    index = match(term,attr(model$terms,"term.labels"))
-    #Use model matrix to determine which coeffs are associated with this term
-    row = attr(model.matrix(model),"assign")==index
-    #Get the relevant coefficents
-    coeffs = c(0,coeffs[row])
-    coeffs
-  }
+  #An intercept only model used for Nagelkerke's pseudo-R2
+  llIntercept = as.numeric(logLik(update(.$initial,.~1)))
+  #Keeper functions records each step
   stepLast = c()
   keeper = function(model,aic){
     modelTerms = attr(model$terms,"term.labels")
@@ -61,13 +55,16 @@ Stepper$calc <- function(.){
     ##So have to use stepLast
     term = modelTerms[!(modelTerms %in% stepLast)]
     stepLast <<- modelTerms
-    
     n = length(residuals(model))
-    df = n - model$df.residual
-    dev = model$deviance
-    r2 = (model$null.deviance-model$deviance)/model$null.deviance
-    .$summary <<- rbind(.$summary,c(Term=term,N=n,DF=df,Deviance=dev,R2=r2,AIC=aic))
-    .$indices[,paste('+',term)] = extractCoeffs(model,"fyear")
+    df = n - df.residual(model)
+    ll = as.numeric(logLik(model))
+    
+    #Deviance pseudo-R2 can only be calculated fro some models
+    r2Dev = (model$null.deviance-model$deviance)/model$null.deviance
+    if(length(r2Dev)==0) r2Dev = NA
+    #Negelkerke pseudo-R2 should be available for all models
+    r2Negel = (1-exp((llIntercept-ll)*(2/n)))/(1-exp(llIntercept*(2/n)))
+    .$summary <<- rbind(.$summary,c(Term=term,N=n,DF=df,LL=ll,AIC=aic,R2Dev=r2Dev,R2Negel=r2Negel))
     
     aic #Seems that you have to return something
   }
@@ -75,53 +72,50 @@ Stepper$calc <- function(.){
     .$initial,
     .$terms,
     direction='forward',
-    #keep=keeper,
+    keep=keeper,
   )
-  .$summary$Term = as.character(.$summary$Term)
-  .$summary$AIC = as.numeric(.$summary$AIC)
-  .$summary$DF = as.integer(.$summary$DF)
-  .$summary$Deviance = as.numeric(.$summary$Deviance)
-  .$summary$R2 = round(as.numeric(.$summary$R2)*100,2)
+  .$summary = within(as.data.frame(.$summary,stringsAsFactors=F),{
+    Term = as.character(Term)
+    DF = as.integer(DF)
+    LL = as.numeric(LL)
+    AIC = as.numeric(AIC)
+    R2Dev = round(as.numeric(R2Dev)*100,2)
+    R2Negel = round(as.numeric(R2Negel)*100,2)
+  })
 
   #Create a final model based on R2 increase criterion
-  if(!is.null(.$r2thresh)){
-    .$summary$Final = rep('',length(.$summary$Term))
-    #Fishing year is always in
-    .$summary$Final[.$summary$Term=='fyear'] = '*'
-    finalTerms = vector()
-    for(i in 3:length(.$summary$Term)){
-      if(.$summary$R2[i]-.$summary$R2[i-1]>=.$r2thresh) {
-      	finalTerms = c(finalTerms,.$summary$Term[i])
-      	.$summary$Final[i] = '*'
-      } 
-      else break
-    }
+  .$summary$Final = rep('',length(.$summary$Term))
+  finalTerms = vector()
+  #First term, fyear, is always in 
+  .$summary[.$summary$Term=='fyear','Final'] = '*'
+  finalTerms = c(finalTerms,'fyear')
+  for(i in 2:length(.$summary$Term)){
+    if(.$summary$R2Negel[i]-.$summary$R2Negel[i-1]>=.$r2thresh) {
+    	finalTerms = c(finalTerms,.$summary$Term[i])
+    	.$summary$Final[i] = '*'
+    } 
+    else break
   }
   
   #Create final model
-  .$finalFormula =  formula(stepped)#as.formula(paste(as.character(.$variable),'~fyear+',paste(finalTerms,collapse='+')))
-  .$final = stepped#glm(.$finalFormula,data=.$data,family=.$family)
+  .$formula =  as.formula(paste('~',paste(finalTerms,collapse='+')))
+  .$final = update(.$initial,.$formula)
 }
 
 Stepper$report <- function(.){
-  formula = as.character(.$finalFormula)
-  formula = paste(formula[2],'~',formula[3])
   Paragraph(
-    'Forward stepwise selection of model terms was done on the basis of the Akaike Information Criterion (AIC). The maximal set of model terms offered to the stepwise selection algorithm was <p><i>',as.character(.$terms),'</i></p> 
+    'Forward stepwise selection of model terms was done on the basis of the Akaike Information Criterion (AIC). 
+    The maximal set of model terms offered to the stepwise selection algorithm was <p><i>',as.character(.$terms),'</i></p> 
     with the term <i>fyear</i> forced into the model. Terms were only added to the model if they increased the percent deviance explained by ',.$r2thresh,'%. ',
-    'Stepper.Summary provides a summary of the changes in the deviance explained and in AIC as each term was added to the model. The final model formula was <p><i>',formula,'</i></p>'
+    'Stepper.Summary provides a summary of the changes in the deviance explained and in AIC as each term was added to the model. 
+    The final model formula was <p><i>',as.character(.$formula),'</i></p>'
   )
 
-  #Table(
-  #  .$summary[,c('Term','DF','Deviance','R2','AIC','Final')],
-  #  label = 'Stepper.Summary',
-  #  caption= "Summary of stepwise selection. Model terms are listed in the order of acceptance to the model. AIC: Akaike Information Criterion; *: Term included in final model.",
-  #  header = c('Term','DF','Deviance','Deviance<br>explained (%)','AIC','')
-  #)
-
-  #print(ggplot(melt(.$indices,id.vars='fyear'),aes(x=fyear,y=value,group=variable,shape=variable,linetype=variable)) + geom_point() + geom_line() + scale_shape_manual(values=1:30) + labs(x='Fishing year',y='Coefficient',shape="Term",linetype="Term"))
-  #Figure(
-  #  "Stepper.Indices",
-  #  "Annual coefficients at each step in the term selection process."
-  #)
+  Table(
+    .$summary[,c('Term','DF','LL','AIC','R2Dev','R2Negel','Final')],
+    label = 'Stepper.Summary',
+    caption= "Summary of stepwise selection. Model terms are listed in the order of acceptance to the model. 
+      AIC: Akaike Information Criterion; *: Term included in final model.",
+    header = c('Term','DF','Log likelihood','AIC','Deviance pseudo-R2 (%)','Nagelkerke pseudo-R2 (%)','')
+  )
 }

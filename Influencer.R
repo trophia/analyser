@@ -6,13 +6,7 @@ Influencer <- Influence$proto()
 Influencer$new <- function(.,model,data,focus=NULL){
   #Attach a data attribute so that influ works on survreg objects
   attr(model,"data") = data
-  
-  #Define response based on type of model
-  #response = switch(class(model)[1],
-  #  glm = 'catch',
-  #  survreg = 'Surv(catch)'
-  #)
-  
+
   inst =.$proto(model=model,response=NULL,focus=focus)
   inst$init()
   
@@ -24,14 +18,21 @@ Influencer$new <- function(.,model,data,focus=NULL){
 }
 
 Influencer$report <- function(.){
-  summary = within(.$summary,{
+  table = within(.$summary[,c('term','k','logLike','aic','r2','r2Dev','r2Negel','overall')],{
+    r2 = round(r2*100,2)
+    r2Dev = round(r2Dev*100,2)
+    r2Negel = round(r2Negel*100,2)
     overall = round(overall*100,2)
   })
   Table(
-    summary[,c('term','df','ss','r2','loglike','aic','overall')],
+    table,
     label = 'Influencer.Summary',
-    header = c('Term','Degrees of freedom','Residual sums of squares','R2 (%)','LogLikelihood','AIC','Influence overall (%)'),
-    caption = 'Summary of the influence of each term in the standardisation model.'
+    header = c('Term','Coefficients','Log likelihood','AIC','R2 (%)', 'Deviance pseudo-R2 (%)', 'Negelkerke pseudo-R2 (%)','Overall influence (%)'),
+    caption = 'Summary of the explanatory power and influence of each term in the standardisation model.
+      Coefficients is the number of coefficients associated with the term added.
+      Log likelihood and AIC values are for the fit as each term is successively added.
+      Coefficient of determination (R2) values represent the change in R2 from the the previous model.
+      R2: square of the correlation coefficient between log(observed) and log(fitted).'
   )
 
   dev.new(width=12/2.54,height=12/2.54)

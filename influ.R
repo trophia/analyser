@@ -156,8 +156,7 @@ Influence$calc <- function(.){
   #Create a data frame that is used to store various values for each level of focal term
   .$indices = data.frame(level=levels(.$model$model[,.$focus]))
   #Add an unstandardised index
-  if(substr(.$response,1,4)=='log(') log_observed = observed
-  else log_observed = log(observed)
+  if(substr(.$response,1,4)=='log(') log_observed = observed else log_observed = log(observed)
   .$indices = merge(.$indices,aggregate(list(unstan=log_observed),list(level=.$model$model[,.$focus]),mean))
   .$indices$unstan = with(.$indices,exp(unstan-mean(unstan)))
   #Add standardised index.
@@ -167,8 +166,10 @@ Influence$calc <- function(.){
   .$indices$stan = exp(coeffs-base)
   .$indices$stanLower = exp(coeffs-base-2*ses)
   .$indices$stanUpper = exp(coeffs-base+2*ses)
+  
   #Create models with terms succesively added
   .$summary = NULL
+  
   #TODO calculate influence statistics in this loop too
   for(termCount in 0:length(.$terms)){
     if(termCount>0){
@@ -184,12 +185,12 @@ Influence$calc <- function(.){
       #Give index column the right hand side of formula as name
       names(.$indices)[ncol(.$indices)] = if(termCount==1) term else paste('+',term)
     } else {
-      term = 'none'
+      term = 'intercept'
       model = update(.$model,.~1)
     }
-    #Add to summary
+    
     type = class(model)[1]
-    loglike =  switch(type,
+    logLike =  switch(type,
         survreg = model$loglik[2],
         logLik(model)
     )
@@ -197,17 +198,37 @@ Influence$calc <- function(.){
         survreg = predict(model,type='response'),
         fitted(model)
     )
-    ss = sum((observed-fitted)^2)
-    if(termCount==0) ss_tot = ss
+    
+    #Sums-of-squared based R2 based on log(observed) and log(fitted)
+    if(termCount==0) r2 = 0 else r2 = cor(log(observed),log(fitted))^2
+    
+    #Deviance pseudo-R2
+    r2Dev = (model$null.deviance-model$deviance)/model$null.deviance
+    if(length(r2Dev)==0) r2Dev = NA
+    
+    #Negelkerke pseudo-R2
+    if(termCount==0) logLikeInterceptOnly = logLike
+    n = length(observed)
+    r2Negel = (1-exp((logLikeInterceptOnly-logLike)*(2/n)))/(1-exp(logLikeInterceptOnly*(2/n)))
+    
     .$summary = rbind(.$summary,data.frame(
       term = term,
-      df = extractAIC(model)[1],
-      ss = ss,
-      r2 = (1-ss/ss_tot)*100,
-      loglike = loglike,
-      aic = extractAIC(model)[2]
+      k = length(coef(model)),
+      logLike = logLike,
+      aic = extractAIC(model)[2],
+      r2 = r2,
+      r2Dev = r2Dev,
+      r2Negel = r2Negel
     ))
   }
+  #R2 values presented as differences
+  .$summary = within(.$summary,{
+    k = c(1,diff(k))
+    r2 = c(NA,diff(r2))
+    r2Dev = c(NA,diff(r2Dev))
+    r2Negel = c(NA,diff(r2Negel))
+  })
+  
   #Calculate predicted values
   preds = predict(.$model,type='terms',se.fit=T)
   fit = as.data.frame(preds$fit)
@@ -396,7 +417,7 @@ Influence$cdiPlot <- function(.,term,variable=NULL){
   par(mar=c(0,5,3,0),las=1)
   with(coeffs,{
     xs = 1:max(as.integer(term))
-    plot(as.integer(term),exp(coeff),xlim=range(xs),ylim=c(0,max(exp(upper))),pch=2,cex=1.5,xaxt='n',ylab='Coefficient')
+    plot(as.integer(term),exp(coeff),xlim=range(xs),ylim=c(min(exp(lower)),max(exp(upper))),pch=2,cex=1.5,xaxt='n',ylab='Coefficient',log='y')
     abline(h=1,lty=2)
     abline(v=xs,lty=1,col='grey')
     segments(as.integer(term),exp(lower),as.integer(term),exp(upper))

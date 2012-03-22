@@ -119,35 +119,64 @@ Diagnoser$implieds <- function(.,bys,fitteds){
 }
 
 Diagnoser$areaYearImpliedPlot <- function(.){
-  imp = .$implieds(bys=c('area','fyear'),fitteds=c('area','fyear'))
+  imp = .$implieds(bys=c('area','fyear'),fitteds=c('fyear'))
   imp$fyear = as.integer(as.character(imp$fyear))
   dev.new(width=26/2.54,height=17/2.54)
   print(ggplot(imp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
-    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey')+ylim(c(0,max(exp(imp$mean))))+
+    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey')+ylim(c(0,max(exp(imp$mean))*1.1))+
     facet_wrap(~area,scales='free_y')+labs(x='Fishing year',y='Coefficient'))
   Figure(
     "Diagnoser.areaYearImpliedPlot",
-    "Resdiual implied coefficients for each area in each fishing year. Implied coefficients are calculated as the sum of the fishing year coefficient plus the mean of the residuals
-    in each fishing year in each area. The error bars indicate one standard error of residuals. The grey line indicates the model's overall fishing year coefficients."
+    "Residual implied coefficients for area x fishing year interactions. 
+      Implied coefficients (black points) are calculated as the normalised fishing year coefficient (grey line) 
+        plus the mean of the standardised residuals in each fishing year and area. 
+      These values approximate the coefficients obtained when an area x year interaction term is fitted, 
+        particularly for those area x year combinations which have a substantial proportion of the records. 
+      The error bars indicate one standard error of the standardised residuals."
   ) 
 }
 
+Diagnoser$targetYearImpliedPlot <- function(.){
+  imp = .$implieds(bys=c('target','fyear'),fitteds=c('fyear'))
+  imp$fyear = as.integer(as.character(imp$fyear))
+  dev.new(width=26/2.54,height=17/2.54)
+  print(ggplot(imp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+
+    geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
+    geom_hline(yintercept=1,linetype=3,colour='grey')+
+    geom_line(aes(y=exp(fit)),col='grey')+
+    ylim(c(0,max(exp(imp$mean))*1.1))+
+    facet_wrap(~target)+
+    labs(x='Fishing year',y='Coefficient'))
+  Figure(
+    "Diagnoser.targetYearImpliedPlot",
+    "Residual implied coefficients for target x fishing year interactions. 
+      Implied coefficients (black points) are calculated as the normalised fishing year coefficient (grey line) 
+        plus the mean of the standardised residuals for each target in each fishing year. 
+      These values approximate the coefficients obtained when a target x year interaction term is fitted, 
+        particularly for those target x year combinations which have a substantial proportion of the records. 
+      The error bars indicate one standard error of the standardised residuals."
+    ) 
+}
+
 Diagnoser$areaMonthImpliedPlot <- function(.){
-  imp = .$implieds(bys=c('area','month'),fitteds=c('area','month','areaMonth'))
+  imp = .$implieds(bys=c('area','month'),fitteds=c('month'))
   imp$monthi = as.integer(imp$month)
   dev.new(width=26/2.54,height=17/2.54)
   print(
     ggplot(imp,aes(x=monthi,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
       geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey60')+
-      ylim(c(0,max(exp(imp$mean))))+scale_x_continuous(breaks=1:12,labels=levels(imp$month))+
+      ylim(c(0,max(exp(imp$mean))*1.1))+scale_x_continuous(breaks=1:12,labels=levels(imp$month))+
       facet_wrap(~area,scales='free_y')+labs(x='Month',y='Coefficient')+
       opts(axis.text.x=theme_text(angle=90))
   )
   Figure(
     "Diagnoser.areaMonthImpliedPlot",
-    "Resdiual implied coefficients for area/month interactions. 
-      Implied coefficients are calculated as the mean of the sum of area and month coefficients (if any; grey line) plus residuals (black points and line). 
-      The error bars indicate one standard error of residuals."
+    "Residual implied coefficients for area x month interactions. 
+      Implied coefficients (black points) are calculated as the normalised month coefficients (grey line) 
+        plus the mean of the standaridised residuals in each month and area.
+      These values approximate the coefficients obtained when an area x month interaction term is fitted, 
+        particularly for those area x month combinations which have a substantial proportion of the records.
+      The error bars indicate one standard error of standardised residuals."
   ) 
 }
 
@@ -170,9 +199,14 @@ Diagnoser$posMonthImpliedPlot <- function(.){
   )
   Figure(
     "Diagnoser.posMonthImpliedPlot",
-    "Residual implied coefficients for each position in each month. Implied coefficients are calculated as the mean, in each position in each month, of the sum of the model fit and the residual for each stratum."
+    "Residual implied coefficients for each position in each month. 
+        Implied coefficients are calculated as the sum of the normalised coefficients for any 
+          model terms relating to area and month (month, area and area x month terms)
+          plus the mean of the standardised residual for position in each month.
+        This plot is intended to show what the combination of model fit and residuals imply about seasonality in local catch rates."
   ) 
 }
+
 Diagnoser$posMonthCatchPlot <- function(.){
   sp = ddply(subset(.$data,as.integer(as.character(fyear))>=2008),.(latt,lont,month),function(sub)with(sub,data.frame(catch=sum(catch))))
   print(ggplot(sp,aes(x=lont,y=latt))+geom_tile(aes(fill=log(catch)))+scale_fill_gradientn(colours=rev(rainbow(10,end=0.7)))+facet_wrap(~month)+labs(x='',y='')+ylim(-42,-36))
@@ -195,7 +229,7 @@ Diagnoser$depthResidPlot <- function(.){
   print(ggplot(sp,aes(x=depthc,y=mean))+geom_point()+geom_line()+geom_errorbar(aes(ymin=mean-se,ymax=mean+se),size=0.3,width=0.3)+labs(x='',y='')+facet_wrap(~month)+geom_hline(yintercept=0,col='grey',linetype=2))
   Figure(
     "Diagnoser.depthResidPlot",
-    "Mean and standard error of residuals by depth by month. Each point represents a 5th percentile of the depth distibution across all strata."
+    "Mean and standard error of residuals by depth by month."
   ) 
 }
 

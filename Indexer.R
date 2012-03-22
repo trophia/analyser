@@ -3,13 +3,14 @@ Indexer <- Worker$proto(
 
   datasets = NULL,
   models = NULL,
+  term = 'fyear',
   others = NULL,
 
   indices = NULL
 )
 
-Indexer$new <- function(.,datasets=NULL,models=NULL,others=NULL){
-  inst = .$proto(datasets=datasets,models=models,others=others)
+Indexer$new <- function(.,datasets=NULL,models=NULL,term='fyear',others=NULL){
+  inst = .$proto(datasets=datasets,models=models,term=term,others=others)
   inst
 }
 
@@ -23,7 +24,7 @@ Indexer$calc <- function(.){
   for(name in names(.$datasets)){
     data = .$datasets[[name]]
     #Calculate indices
-    indices = ddply(data,.(fyear),function(sub)with(sub,data.frame(
+    indices = ddply(data,.$term,function(sub)with(sub,data.frame(
       success.prop = sum(sub$catch>0)/nrow(sub),
       ratio.rate = sum(catch)/sum(effort),
       ratio.positive.rate = with(subset(sub,catch>0),sum(catch)/sum(effort)),
@@ -36,28 +37,29 @@ Indexer$calc <- function(.){
       geometric.index = geometric.rate/geomean(geometric.rate)
     })
     #Merge into .$indices
-    names(indices) = c('fyear',paste(name,names(indices)[-1],sep='.'))
-    .$indices = if(is.null(.$indices)) indices else merge(.$indices,indices,by='fyear',all=T)
+    names(indices) = c(.$term,paste(name,names(indices)[-1],sep='.'))
+    .$indices = if(is.null(.$indices)) indices else merge(.$indices,indices,by=.$term,all=T)
   }
 
   #Calculate standardised indices for models
   for(name in names(.$models)){
     model = .$models[[name]]
-    coef = Influencer$coeffs(model,'fyear')
+    coef = Influencer$coeffs(model,.$term)
     index = exp(coef-mean(coef))
-    se = Influencer$ses(model,'fyear')
+    se = Influencer$ses(model,.$term)
     indices = data.frame(
-      fyear = sort(unique(model.frame(model)$fyear)),
+      term = sort(unique(model.frame(model)[,.$term])),
       index = index,
       se = se
     )
-    rateBase = 1#with(model$data,geomean(catch/effort))
-    indices = within(indices,{
-      rate = rateBase * index
-    })
+    names(indices) = c(.$term,'index','se')
+    #rateBase = with(model$data,geomean(catch/effort))
+    #indices = within(indices,{
+    #  rate = rateBase * index
+    #})
     #Merge into .$indices
-    names(indices) = c('fyear',paste(name,names(indices)[-1],sep='.'))
-    .$indices = if(is.null(.$indices)) indices else merge(.$indices,indices,by='fyear',all=T)
+    names(indices) = c(.$term,paste(name,names(indices)[-1],sep='.'))
+    .$indices = if(is.null(.$indices)) indices else merge(.$indices,indices,by=.$term,all=T)
   }
 
   #Merge in others
@@ -70,38 +72,36 @@ Indexer$calc <- function(.){
 	#Get 
      # }
     #}
-    .$indices = if(is.null(.$indices)) .$others else merge(.$indices,.$others,by='fyear',all=T)
+    .$indices = if(is.null(.$indices)) .$others else merge(.$indices,.$others,by=.$term,all=T)
   }
   
-  #Convert fishing year to character for table niceness
-  .$indices = within(.$indices,{fyear = as.character(fyear)})
+  #Convert term to character for table niceness
+  .$indices[,.$term] = as.character(.$indices[,.$term])
 }
 
 Indexer$comparisonPlot <- function(.,indices=NULL,match=NULL,ylab=''){
   if(is.null(match)) match = '.index'
   if(is.null(indices)) indices = names(.$indices)[grep(match,names(.$indices))]
   dev.new(width=16/2.54,height=13/2.54)
-  data = melt(.$indices[c('fyear',indices)],id.vars='fyear')
-  data$fyear = as.integer(as.character(data$fyear))
+  data = melt(.$indices[c(.$term,indices)],id.vars=.$term)
+  if(.$term=='fyear') data$fyear = as.integer(as.character(data$fyear))
   print(ggplot(data,aes(x=fyear,y=value,group=variable,colour=variable,shape=variable)) + geom_point(size=2.5) + geom_line() + scale_shape_manual(values=1:30) + 
     labs(x='Fishing year',y=ylab,colour='',shape='') + ylim(0,max(data$value,na.rm=T)) + opts(legend.position=c(0.4,0.4),legend.justification=c(1,1)))
 }
 
 Indexer$report <- function(.,to=""){
-  .$header(c('datasets','models'),to=to)
   if(!is.null(.$indices)){
     #Table of indices
-    .$table(.$indices,"CPUE indices",to=to)
+    Table(.$indices,"CPUE indices",to=to)
     #Plot of indices divided into the separate groups
     for(type in c('prop','rate','index')){
       indices = .$indices[,c(1,grep(paste('.',type,sep=''),names(.$indices)))]
       with(indices,{
-	plot(fyear,rep(NA,nrow(indices)),ylim=c(0,max(indices[2:ncol(indices)])))
-	for(name in names(indices)[2:ncol(indices)]){
-	    lines(fyear,indices[,name])
-	}
+        plot(indices[,.$term],rep(NA,nrow(indices)),ylim=c(0,max(indices[2:ncol(indices)])))
+        for(name in names(indices)[2:ncol(indices)]){
+            lines(indices[,.$term],indices[,name])
+        }
       })
     }
   }
-  else cat("Not done",file=to)
 }

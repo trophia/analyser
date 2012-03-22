@@ -3,7 +3,7 @@ require(influ)
 
 Influencer <- Influence$proto()
 
-Influencer$new <- function(.,model,data){
+Influencer$new <- function(.,model,data,focus=NULL){
   #Attach a data attribute so that influ works on survreg objects
   attr(model,"data") = data
   
@@ -13,7 +13,7 @@ Influencer$new <- function(.,model,data){
   #  survreg = 'Surv(catch)'
   #)
   
-  inst =.$proto(model=model,response=NULL,focus=NULL)
+  inst =.$proto(model=model,response=NULL,focus=focus)
   inst$init()
   
   #Set some options

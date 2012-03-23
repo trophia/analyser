@@ -171,7 +171,8 @@ Distributioner$diagPlot <- function(.){
       	'glm' = rstandard(model),
       	'survreg' = residuals(model,type='deviance')
       )
-      rs = rs-mean(rs,na.rm=T)
+      rs = rs[!is.na(rs)]
+      rs = rs-mean(rs)
       h = hist(rs,breaks=100,plot=F)
       xhist = c(min(h$breaks),h$breaks)
       yhist = c(0,h$density,0)

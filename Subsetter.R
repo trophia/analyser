@@ -23,13 +23,13 @@ Subsetter$init <- function(.){
   if(!is.null(.$size)).$data = .$data[sample(1:nrow(.$data),min(nrow(.$data),.$size)),]
   #Create summary
   .$summary = ddply(.$data,.(fyear),function(sub) data.frame(
-    events=sum(sub$events),
     vessels=length(unique(sub$vessel)),
     trips=length(unique(sub$trip)),
+    events=sum(sub$events),
     effort_number=sum(sub$num,na.rm=T),
     effort_duration=sum(sub$duration,na.rm=T),
     catch=sum(sub$catch/1000,na.rm=T),
-    percent_zero=round(sum(sub$catch==0,na.rm=T)/nrow(sub)*100,2)
+    percent_positive=round(sum(sub$catch>0,na.rm=T)/nrow(sub)*100,2)
   ))
 }
 
@@ -47,11 +47,11 @@ Subsetter$report <- function(.){
   .$summary$fyear = as.character(.$summary$fyear) #Prevents 'commaring'
   vesRange = range(.$summary$vessels)
   vessMinYear = with(.$summary,fyear[which.min(vessels)])
-  p0Range = round(range(.$summary$percent_zero,na.rm=T))
+  p0Range = round(range(.$summary$percent_positive,na.rm=T))
   Html(
     '@Subsetter.Summary summarises the number of fishing events, vessels, trips, effort and catch in the resultant dataset. 
     The minimum number of vessels was ',vesRange[1],' in ',vessMinYear,'. 
-    The percentage of zero catches ranged from ',p0Range[1],'% to ',p0Range[2],'%.')
+    The percentage of poisitive catches ranged from ',p0Range[1],'% to ',p0Range[2],'%.')
 
   Html('</p>')
 
@@ -59,8 +59,8 @@ Subsetter$report <- function(.){
     .$summary,
     label = 'Subsetter.Summary',
     caption = 'Summary by fishing year of the data subset used for this analysis.',
-    header = c('Fishing year','Events','Vessels','Trips',
-	      'Effort number','Effort duration (hrs)',
-	      'Catch (t)','Zero catch<br>(landed,% records)')
+    header = c('Fishing year','Vessels','Trips','Events',
+	      'Effort (num)','Effort (hrs)',
+	      'Catch (t)','Events with catch<br>(landed,%)')
    )
 }

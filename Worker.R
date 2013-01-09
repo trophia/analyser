@@ -5,13 +5,18 @@ library(gtools)
 library(ggplot2)
 theme_set(theme_bw())
 theme_update(
-  panel.border = theme_rect(fill = NA, colour = 'black'),
-  panel.grid.major = theme_line(colour='white',size=0.1),
-  panel.grid.minor = theme_line(colour='white',size=0.1),
-  strip.background = theme_rect(fill = 'grey80', colour = 'black'),
-  legend.key = theme_rect(colour = 'white'),
-  legend.title = theme_text(size=12,hjust = 0)
+  panel.border = element_rect(fill = NA, colour = 'black'),
+  panel.grid.major = element_line(colour='white',size=0.1),
+  panel.grid.minor = element_line(colour='white',size=0.1),
+  strip.background = element_rect(fill = 'grey80', colour = 'black'),
+  axis.text.x = element_text(size=11),
+  axis.text.y = element_text(size=11),
+  axis.title.x = element_text(size=11,vjust = 0),
+  axis.title.y = element_text(size=11,vjust = 0.5,angle = 90),
+  legend.key = element_rect(colour = 'white'),
+  legend.title = element_text(size=11,hjust = 0)
 )
+library(grid)
 vplayout = function(rows,cols) {grid.newpage(); pushViewport(viewport(layout=grid.layout(ncol=cols,nrow=rows)))}
 subplot = function(row,col) viewport(layout.pos.col=col,layout.pos.row=row)
 

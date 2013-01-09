@@ -1,4 +1,4 @@
-# Copyright (c) 2010-2011 Nokome Bentley, Trophia Ltd
+# Copyright (c) 2010-2012 Nokome Bentley, Trophia Ltd
 # All rights reserved.
 # 
 # Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
@@ -113,15 +113,17 @@ coeffs = function(.,model=.$model,term=.$focus){
 #' @param term The term in the model for which coefficients SEs are extracted
 ses = function(.,model=.$model,term=.$focus){
   type = class(model)[1]
-  if(type=='glm'){
+  if(type=='glm'|type=='negbin'){
     #The "cov.scaled" member of a glm object is the estimated covariance matrix of 
     #the estimated coefficients scaled by dispersion"    
     V = summary(model)$cov.scaled
   }
   else if(type=='survreg'){
-    #The member "var" for a survreg object is the "the variance-covariance matrix for the parameters, including the log(scale) parameter(s)" 
+    #The member "var" for a survreg object is the "the variance-covariance matrix for the parameters, 
+    #including the log(scale) parameter(s)" 
     V = model$var
   }
+  
   rows = substr(row.names(V),1,nchar(term))==term
   V = V[rows,rows]
   n = sum(rows)+1
@@ -156,8 +158,12 @@ Influence$calc <- function(.){
   #Create a data frame that is used to store various values for each level of focal term
   .$indices = data.frame(level=levels(.$model$model[,.$focus]))
   #Add an unstandardised index
-  if(substr(.$response,1,4)=='log(') log_observed = observed else log_observed = log(observed)
-  .$indices = merge(.$indices,aggregate(list(unstan=log_observed),list(level=.$model$model[,.$focus]),mean))
+  if(sum(observed<=0)==0){
+    if(substr(.$response,1,4)=='log(') log_observed = observed else log_observed = log(observed)
+    .$indices = merge(.$indices,aggregate(list(unstan=log_observed),list(level=.$model$model[,.$focus]),mean))
+  }else {
+    .$indices = merge(.$indices,aggregate(list(unstan=observed),list(level=.$model$model[,.$focus]),mean))
+  }
   .$indices$unstan = with(.$indices,exp(unstan-mean(unstan)))
   #Add standardised index.
   coeffs = .$coeffs()
@@ -400,24 +406,27 @@ Influence$cdiPlot <- function(.,term,variable=NULL){
 
   #Reorder levels according to coefficients if necessary
   if(.$orders[[term]]=='coef'){
-    coeffs = aggregate(.$preds[,paste('fit',term,sep='.')],list(levels),head,1)
+    coeffs = aggregate(.$preds[,paste('fit',term,sep='.')],list(levels),mean)
     names(coeffs) = c('term','coeff')
     coeffs = coeffs[order(coeffs$coeff),]
     levels = factor(levels,levels=coeffs$term,ordered=T)
   }
 
   #Coefficients
-  coeffs = aggregate(.$preds[,paste(c('fit','se.fit'),term,sep='.')],list(levels),head,1)
+  coeffs = aggregate(.$preds[,paste(c('fit','se.fit'),term,sep='.')],list(levels),mean)
   names(coeffs) = c('term','coeff','se')
   coeffs = within(coeffs,{
-    lower = coeff-2*se
-    upper = coeff+2*se
+    lower = coeff-se
+    upper = coeff+se
   })
 
   par(mar=c(0,5,3,0),las=1)
   with(coeffs,{
     xs = 1:max(as.integer(term))
-    plot(as.integer(term),exp(coeff),xlim=range(xs),ylim=c(min(exp(lower)),max(exp(upper))),pch=2,cex=1.5,xaxt='n',ylab='Coefficient',log='y')
+    ylim = c(min(exp(lower)),max(exp(upper)))
+    if(ylim[1]<0.5*min(exp(coeff))) ylim[1] = 0.5*min(exp(coeff))
+    if(ylim[2]>2*max(exp(coeff))) ylim[2] = 2*max(exp(coeff))
+    plot(as.integer(term),exp(coeff),xlim=range(xs),ylim=ylim,pch=2,cex=1.5,xaxt='n',ylab='Coefficient',log='y')
     abline(h=1,lty=2)
     abline(v=xs,lty=1,col='grey')
     segments(as.integer(term),exp(lower),as.integer(term),exp(upper))

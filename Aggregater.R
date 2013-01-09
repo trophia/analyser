@@ -31,19 +31,16 @@ Aggregater$init <- function(.){
   }
   #Create summary
   .$summary = ddply(.$data,.(fyear),function(sub) data.frame(
-    strata=nrow(sub),
     vessels=length(unique(sub$vessel)),
     trips=length(unique(sub$trip)),
-    catch=sum(sub$catch,na.rm=T)/1000,
-    effort_number=sum(sub$num,na.rm=T),
-    effort_duration=sum(sub$duration,na.rm=T),
-    percent_zero=sum(sub$catch<=0,na.rm=T)/nrow(sub)*100,
+    strata=nrow(sub),
     events=sum(sub$events,na.rm=T),
     events_per_strata = sum(sub$events,na.rm=T)/nrow(sub),
-    strata_pos = sum(sub$catch>0,na.rm=T),
-    trips_pos = length(unique(subset(sub,catch>0)$trip)),
-    effort_number_pos = sum(subset(sub,catch>0)$num,na.rm=T),
-    effort_duration_pos = sum(subset(sub,catch>0)$duration,na.rm=T)
+    effort_number=sum(sub$num,na.rm=T),
+    effort_duration=sum(sub$duration,na.rm=T),
+    catch=sum(sub$catch,na.rm=T)/1000,
+    trips_pos = length(unique(subset(sub,catch>0)$trip))/length(unique(sub$trip))*100,
+    strata_pos = sum(sub$catch>0,na.rm=T)/nrow(sub)*100
   ))
 }
 
@@ -56,10 +53,11 @@ Aggregater$report <- function(.){
 
   .$summary$fyear = as.character(.$summary$fyear) #Prevents 'commaring'
   Table(
-    .$summary[,c('fyear','strata','events_per_strata','strata_pos','percent_zero','trips_pos','effort_number_pos','effort_duration_pos')],
+    .$summary,
     label = 'Aggregater.Summary',
-    caption = 'Summary by fishing year of the data after aggregation to strata.',
-    header = c('Fishing year','Strata','Events per stratum',#'Events','Vessels','Trips','Catch (t)','Effort num','Effort duration (hrs)',
-      'Strata with positive catch','Strata with zero catch (%)','Trips with positive catch','Total effort units from strata with positive catch','Total effort duration from strata with positive catch')
-  )
+    caption = 'Summary of aggregated data by fishing year.',
+    header = c('Fishing year','Vessels','Trips','Strata','Events','Events per stratum','Effort (num)','Effort(hrs)',
+               'Catch (t)','Trips with catch (%)','Strata with catch (%)'
+               )
+    )
 }

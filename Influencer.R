@@ -1,5 +1,5 @@
 #A simple wrapper around the 'influ' package
-require(influ)
+#require(influ)
 
 Influencer <- Influence$proto()
 
@@ -35,35 +35,35 @@ Influencer$report <- function(.){
       R2: square of the correlation coefficient between log(observed) and log(fitted).'
   )
 
-  dev.new(width=12/2.54,height=12/2.54)
+  dev.new(width=16/2.54,height=12/2.54)
   .$stanPlot()
   Figure(
     'Influencer.Standardization',
     'Overall standardization effect of the model. The unstandardised index is based on the geometric mean of the catch per strata and is not adjusted for effort.'
   )
 
-  dev.new(width=8/2.54,height=16/2.54)
-  .$stepPlot()
-  Figure(
-    'Influencer.Step',
-    'Annual indices of CPUE as each term is succesively added to the model. The indices are normalised to an overall geometric mean of 1.'
-  )
+  #dev.new(width=8/2.54,height=16/2.54)
+  #.$stepPlot()
+  #Figure(
+  #  'Influencer.Step',
+  #  'Annual indices of CPUE as each term is succesively added to the model. The indices are normalised to an overall geometric mean of 1.'
+  #)
 
-  dev.new(width=8/2.54,height=16/2.54)
-  .$influPlot()
-  Figure(
-    'Influencer.Influence',
-    'Annual influence for each term in the model.'
-  )
+  #dev.new(width=8/2.54,height=16/2.54)
+  #.$influPlot()
+  #Figure(
+  #  'Influencer.Influence',
+  #  'Annual influence for each term in the model.'
+  #)
 
-  dev.new(width=16/2.54,height=16/2.54)
+  dev.new(width=16/2.54,height=18/2.54)
   .$stepAndInfluPlot()
   Figure(
     'Influencer.StepAndInfluence',
     'Step and influence plot'
   )
 
-  dev.new(width=16/2.54,height=16/2.54)
+  dev.new(width=25/2.54,height=16/2.54)
   .$cdiPlotAll(done=function(term){
     Figure(
     	paste('Influencer.',term,sep=''),

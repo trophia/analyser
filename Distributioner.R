@@ -1,8 +1,9 @@
-library(MASS) #For fitdistr
-library(SuppDists) #For inverse Gaussian distibution : dinvGauss and qinvGauss
-library(actuar) #For Log-logistic distributuion : dllogis and qllogis
-library(survival) #For survreg
+library(survival) #For survreg()
+library(MASS) #For fitdistr() and glm.nb() (negative binomial GLM)
 #library(VGAM) #For vglm
+#library(pscl) #For hurdle() and zeroinfl()
+library(SuppDists) #For inverse Gaussian distibution : dinvGauss() and qinvGauss()
+library(actuar) #For Log-logistic distributuion : dllogis() and qllogis()
 
 Distributioner <- Worker$proto(
   label = "Distributioner",
@@ -17,8 +18,37 @@ Distributioner$new <- function(.,data,formula=catch~fyear+month+area+vessel){
   inst
 }
 
-Distributioner$calc <- function(.,dists = c('gamma','inverse.gaussian','lognormal','log.logistic','weibull')){
-  data = subset(.$data,catch>0 & is.finite(catch))
+Distributioner$model <- function(.,formula,dist,data){
+	#A utility method used in other methods below which creates a model of given formula
+	#and distribution from data
+	survregFormula = update(formula,Surv(.)~.)
+	switch(dist,
+		gaussian = glm(formula,data=data,family=gaussian(link='log')),
+		gamma = glm(formula,data=data,family=Gamma(link='log')),
+		inverse.gaussian = glm(formula,data=data,family=inverse.gaussian(link='log')),
+		poisson = glm(formula,data=data,family=poisson(link='log')),
+
+		lognormal = survreg(survregFormula,data=data,dist='lognormal'),
+		weibull = survreg(survregFormula,data=data,dist='weibull'),
+		log.logistic = survreg(survregFormula,data=data,dist='loglogistic'),
+
+		neg.binomial = glm.nb(formula, data=data,link="log")#,
+
+		#zi.poison = zeroinfl(formula, data=data, dist = "poisson", link = "log"),
+		#zi.neg.binomial = zeroinfl(formula, data=data, dist = "neggbin", link = "log"),
+	)
+}
+
+Distributioner$calc <- function(.,dists = NULL){
+  
+  data = .$data
+  
+  # See if there are zeros in the data...
+  minimum = min(data$catch,na.rm=T)
+  # ...to determine the range of appropriate models
+  if(minimum>0)  dists = c('gamma','inverse.gaussian','lognormal','log.logistic','weibull')
+  else dists = c('poisson','neg.binomial','weibull')#'zi.poison','zi.neg.binomial')  
+  
   #Scale by sd so that distributions fit better
   .$var = data$catch
   .$var = .$var/sd(.$var)
@@ -36,9 +66,14 @@ Distributioner$calc <- function(.,dists = c('gamma','inverse.gaussian','lognorma
     fit = tryCatch(
       fitdistr(.$var,
         densfun = switch(dist,
-        	gaussian = "normal",
+        	#For some distributions we need to provide a density function
         	inverse.gaussian = dinvGauss,
         	log.logistic = dllogis,
+          #For some, we need to 'translate' the name...
+          gaussian = "normal",
+          poisson = "Poisson",
+          neg.binomial = "negative binomial",          
+          #For many the name we use will suffice...
         	dist
         ),
         start = switch(dist,
@@ -50,16 +85,8 @@ Distributioner$calc <- function(.,dists = c('gamma','inverse.gaussian','lognorma
       error=errorCapture
     )
     
-    survregFormula = update(.$formula,Surv(.)~.)
     model = tryCatch(
-      switch(dist,
-    	  gaussian = glm(.$formula,data=data,family=gaussian(link='log')),
-    	  gamma = glm(.$formula,data=data,family=Gamma(link='log')),
-    	  inverse.gaussian = glm(.$formula,data=data,family=inverse.gaussian(link='log')),
-    	  lognormal = survreg(survregFormula,data=data,dist='lognormal'),
-    	  weibull = survreg(survregFormula,data=data,dist='weibull'),
-    	  log.logistic = survreg(survregFormula,data=data,dist='loglogistic')
-    	),
+      .$model(.$formula,dist,data),
       error=errorCapture
     )
     
@@ -67,16 +94,16 @@ Distributioner$calc <- function(.,dists = c('gamma','inverse.gaussian','lognorma
     
     logLike = tryCatch(
       switch(type,
-      	'glm' = logLik(model),
-      	'survreg' = model$loglik[2],
+      	survreg = model$loglik[2],
+	      logLik(model)
       ),
       error=errorCapture
     )
   
     aic = tryCatch(
       switch(type,
-       'glm' = AIC(model),
-       'survreg' = extractAIC(model)[2],
+        survreg = extractAIC(model)[2],
+        AIC(model)
       ),
       error=errorCapture
     )
@@ -150,7 +177,9 @@ Distributioner$diagPlot <- function(.){
       	  weibull = qweibull(qs,shape=fit$estimate[1],scale=fit$estimate[2]),
       	  log.logistic = qllogis(qs,shape=fit$estimate[1],rate=fit$estimate[2]),
       	  inverse.gaussian = qinvGauss(qs,nu=fit$estimate[1],lambda=fit$estimate[2]),
-      	  rep(qs,length(xfit))
+      	  poisson = qpois(qs,lambda=fit$estimate[1]),
+          neg.binomial = qnbinom(qs,p=fit$estimate[1],lambda=fit$estimate[2]),
+          qs
       	)
       	emp = quantile(.$var,qs)
       	plot(emp~the,cex=0.5,ylab='Observed',las=1,xaxt=if(last)'s'else'n',log='xy')
@@ -168,8 +197,8 @@ Distributioner$diagPlot <- function(.){
     if(typeof(model)!='character'){
       type = class(model)[1]
       rs = switch(type,
-      	'glm' = rstandard(model),
-      	'survreg' = residuals(model,type='deviance')
+      	'survreg' = residuals(model,type='deviance'),
+	      rstandard(model)
       )
       rs = rs[!is.na(rs)]
       rs = rs-mean(rs)
@@ -227,16 +256,7 @@ Distributioner$best <- function(.){
 
 Distributioner$initModel <- function(.,dist,data){
   #Create an initial(null) model that can be used in forward stepwise selection
-  if(dist %in% c('gamma','inverse.gaussian')){
-    init = glm(catch~1,data=data,family=switch(dist,
-      gamma = Gamma(link='log'),
-      inverse.gaussian = inverse.gaussian(link='log')
-    ))
-  }
-  if(dist %in% c('lognormal','log.logistic','weibull')){
-    init = survreg(Surv(catch)~1,data=data,dist=dist)
-  }
-  return(init)
+  .$model(~1,dist,data)
 }
 
 Distributioner$convertModel <- function(.,model,dist,data){

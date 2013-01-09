@@ -79,20 +79,22 @@ Indexer$calc <- function(.){
   .$indices[,.$term] = as.character(.$indices[,.$term])
 }
 
-Indexer$comparisonPlot <- function(.,indices=NULL,match=NULL,ylab=''){
+Indexer$comparisonPlot <- function(.,indices=NULL,match=NULL,labels=NULL,ylab=''){
   if(is.null(match)) match = '.index'
   if(is.null(indices)) indices = names(.$indices)[grep(match,names(.$indices))]
   dev.new(width=16/2.54,height=13/2.54)
   data = melt(.$indices[c(.$term,indices)],id.vars=.$term)
+  data$variable = labels[match(data$variable,indices)]
   if(.$term=='fyear') data$fyear = as.integer(as.character(data$fyear))
-  print(ggplot(data,aes(x=fyear,y=value,group=variable,colour=variable,shape=variable)) + geom_point(size=2.5) + geom_line() + scale_shape_manual(values=1:30) + 
-    labs(x='Fishing year',y=ylab,colour='',shape='') + ylim(0,max(data$value,na.rm=T)) + opts(legend.position=c(0.4,0.4),legend.justification=c(1,1)))
+  print(ggplot(data,aes(x=fyear,y=value,group=variable,colour=variable,shape=variable)) + geom_point(size=3) + 
+    geom_line() + scale_shape_manual(values=1:30) + 
+    labs(x='Fishing year',y=ylab,colour='',shape='') + ylim(0,max(data$value,na.rm=T)))
 }
 
-Indexer$report <- function(.,to=""){
+Indexer$report <- function(.){
   if(!is.null(.$indices)){
     #Table of indices
-    Table(.$indices,"CPUE indices",to=to)
+    Table(.$indices,"CPUE indices")
     #Plot of indices divided into the separate groups
     for(type in c('prop','rate','index')){
       indices = .$indices[,c(1,grep(paste('.',type,sep=''),names(.$indices)))]

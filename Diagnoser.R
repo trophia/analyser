@@ -16,7 +16,7 @@ Diagnoser$new <- function(.,model,data=NULL){
   
   #Add observed, fitted, standardised residual
   type = class(model)[1]
-  if(type=='glm'){
+  if(type=='glm' | type=='negbin'){
     data = cbind(
       data,
       observed = data$catch,
@@ -36,12 +36,15 @@ Diagnoser$new <- function(.,model,data=NULL){
   preds = as.data.frame(predict(model,type='terms',se.fit=T)$fit)
   names(preds) = paste('fit.',names(preds),sep='')
   data = cbind(data,preds)
+  #Remove wonky residuals
+  data = subset(data,is.finite(residual))
   #Some adjustments
   data = within(data,{
     residual = residual-mean(residual,na.rm=T)
-    latt = round(lat,1)-0.05
-    lont = round(lon,1)+0.05
     season = factor(c('Su','Su','Au','Au','Au','Wi','Wi','Wi','Sp','Sp','Sp','Su')[month],levels=c('Sp','Su','Au','Wi'),ordered=T)
+    # Truncated lat/lon (to 0.1 degree) is used in some summaries
+    latt = sign(lat) * (floor(abs(lat)/0.1)*0.1-0.05)
+    lont = sign(lon) * (floor(abs(lon)/0.1)*0.1+0.05)
   })
   inst$data = data
   
@@ -109,43 +112,63 @@ Diagnoser$implieds <- function(.,bys,fitteds){
     if(paste('fit.',term,sep='') %in% names(.$data)) terms = c(terms,paste('fit.',term,sep=''))
   }
   if(length(terms)==0) {
-    imp = ddply(.$data,bys,function(sub)with(sub,data.frame(fit=0,mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
+    imp = ddply(.$data,bys,function(sub)with(sub,data.frame(fit=0,mean=mean(residual,na.rm=T),se=sd(residual,na.rm=T)/sqrt(length(residual)))))
   }  else if(length(terms)==1) {
-    imp = ddply(.$data,bys,function(sub)with(sub,data.frame(fit=mean(sub[,terms]),mean=mean(rowSums(sub[,c(terms,'residual')])),se=sd(residual)/sqrt(length(residual)))))
+    imp = ddply(.$data,bys,function(sub)with(sub,data.frame(fit=mean(sub[,terms],na.rm=T),mean=mean(rowSums(sub[,c(terms,'residual')]),na.rm=T),se=sd(residual,na.rm=T)/sqrt(length(residual)))))
   } else {
-    imp = ddply(.$data,bys,function(sub)with(sub,data.frame(fit=mean(rowSums(sub[,terms])),mean=mean(rowSums(sub[,c(terms,'residual')])),se=sd(residual)/sqrt(length(residual)))))
+    imp = ddply(.$data,bys,function(sub)with(sub,data.frame(fit=mean(rowSums(sub[,terms]),na.rm=T),mean=mean(rowSums(sub[,c(terms,'residual')]),na.rm=T),se=sd(residual,na.rm=T)/sqrt(length(residual)))))
   }
   imp
 }
 
-Diagnoser$areaYearImpliedPlot <- function(.){
-  imp = .$implieds(bys=c('area','fyear'),fitteds=c('fyear'))
+Diagnoser$impliedPlot <- function(.,factor){
+  imp = .$implieds(bys=c(factor,'fyear'),fitteds=c(factor,'fyear'))
   imp$fyear = as.integer(as.character(imp$fyear))
   dev.new(width=26/2.54,height=17/2.54)
   print(ggplot(imp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
-    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey')+ylim(c(0,max(exp(imp$mean))*1.1))+
+    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey')+
+    ylim(c(0,max(exp(imp$mean))*1.1))+scale_y_log10()+
+    facet_wrap(as.formula(paste('~',factor)),scales='free_y')+labs(x='Fishing year',y='Coefficient'))
+  Figure(
+    "Diagnoser.impliedPlot",
+    paste("Residual implied coefficients for ",factor," x fishing year interactions. 
+      Implied coefficients (black points) are calculated as the normalised fishing year coefficient (grey line) 
+        plus the mean of the standardised residuals in each fishing year and ",factor,". 
+      These values approximate the coefficients obtained when an ",factor," x year interaction term is fitted, 
+        particularly for those ",factor," x year combinations which have a substantial proportion of the records. 
+      The error bars indicate one standard error of the standardised residuals.",sep='')
+  ) 
+}
+
+Diagnoser$areaYearImpliedPlot <- function(.){
+  imp = .$implieds(bys=c('area','fyear'),fitteds=c('area','fyear'))
+  imp$fyear = as.integer(as.character(imp$fyear))
+  dev.new(width=26/2.54,height=17/2.54)
+  print(ggplot(imp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
+    geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey')+
+    ylim(c(0,max(exp(imp$mean))*1.1))+scale_y_log10()+
     facet_wrap(~area,scales='free_y')+labs(x='Fishing year',y='Coefficient'))
   Figure(
     "Diagnoser.areaYearImpliedPlot",
     "Residual implied coefficients for area x fishing year interactions. 
       Implied coefficients (black points) are calculated as the normalised fishing year coefficient (grey line) 
-        plus the mean of the standardised residuals in each fishing year and area. 
-      These values approximate the coefficients obtained when an area x year interaction term is fitted, 
-        particularly for those area x year combinations which have a substantial proportion of the records. 
-      The error bars indicate one standard error of the standardised residuals."
+    plus the mean of the standardised residuals in each fishing year and area. 
+    These values approximate the coefficients obtained when an area x year interaction term is fitted, 
+    particularly for those area x year combinations which have a substantial proportion of the records. 
+    The error bars indicate one standard error of the standardised residuals."
   ) 
 }
 
 Diagnoser$targetYearImpliedPlot <- function(.){
-  imp = .$implieds(bys=c('target','fyear'),fitteds=c('fyear'))
+  imp = .$implieds(bys=c('target','fyear'),fitteds=c('target','fyear'))
   imp$fyear = as.integer(as.character(imp$fyear))
   dev.new(width=26/2.54,height=17/2.54)
   print(ggplot(imp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+
     geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
     geom_hline(yintercept=1,linetype=3,colour='grey')+
     geom_line(aes(y=exp(fit)),col='grey')+
-    ylim(c(0,max(exp(imp$mean))*1.1))+
-    facet_wrap(~target)+
+    ylim(c(0,max(exp(imp$mean))*1.1))+scale_y_log10()+
+    facet_wrap(~target,scales='free_y')+
     labs(x='Fishing year',y='Coefficient'))
   Figure(
     "Diagnoser.targetYearImpliedPlot",
@@ -159,13 +182,14 @@ Diagnoser$targetYearImpliedPlot <- function(.){
 }
 
 Diagnoser$areaMonthImpliedPlot <- function(.){
-  imp = .$implieds(bys=c('area','month'),fitteds=c('month'))
+  imp = .$implieds(bys=c('area','month'),fitteds=c('area','month','areaMonth'))
   imp$monthi = as.integer(imp$month)
   dev.new(width=26/2.54,height=17/2.54)
   print(
     ggplot(imp,aes(x=monthi,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
       geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey60')+
-      ylim(c(0,max(exp(imp$mean))*1.1))+scale_x_continuous(breaks=1:12,labels=levels(imp$month))+
+      scale_y_log10() +
+      scale_x_continuous(breaks=1:12,labels=levels(imp$month))+
       facet_wrap(~area,scales='free_y')+labs(x='Month',y='Coefficient')+
       opts(axis.text.x=theme_text(angle=90))
   )
@@ -182,7 +206,7 @@ Diagnoser$areaMonthImpliedPlot <- function(.){
 
 Diagnoser$posMonthImpliedPlot <- function(.){
   imp = .$implieds(bys=c('latt','lont','month'),fitteds=c('area','month','areaMonth'))
-  #Determine suitable lt and lon ranges
+  #Determine suitable lat and lon ranges
   imp = subset(imp,latt<(-30) & latt>(-50) & lont>160 & lont<200)
   latr = quantile(imp$latt,p=c(0.01,0.99),na.rm=T)
   latr = c(latr[1]-0.5,latr[2]+0.5)
@@ -191,11 +215,13 @@ Diagnoser$posMonthImpliedPlot <- function(.){
   #Plot it
   dev.new(width=26/2.54,height=17/2.54)
   print (
-    ggplot(imp,aes(x=lont,y=latt)) + geom_polygon(data=clipPolys(coast,ylim=latr,xlim=lonr),aes(x=X,y=Y,group=PID),fill='white',colour="grey80") + 
-      geom_tile(aes(fill=mean))+scale_fill_gradient2('Coefficient',low="blue",mid='grey',high="red")+facet_wrap(~month)+labs(x='',y='') + 
+    ggplot(imp,aes(x=lont,y=latt)) + 
+      geom_tile(aes(fill=mean))+scale_fill_gradient2('Coefficient',low="blue",mid='grey',high="red") + 
+      geom_polygon(data=clipPolys(coast,ylim=latr,xlim=lonr),aes(x=X,y=Y,group=PID),fill='white',colour="grey80") + 
       scale_y_continuous("",limits=latr,expand=c(0,0)) + 
       scale_x_continuous("",limits=lonr,expand=c(0,0)) +
-      coord_map(project="mercator")
+      facet_wrap(~month) + 
+      labs(x='',y='') + coord_map(project="mercator")
   )
   Figure(
     "Diagnoser.posMonthImpliedPlot",
@@ -225,12 +251,35 @@ Diagnoser$depthResidPlot <- function(.){
   data = within(.$data,{
     depthc = mids[cut(depth,breaks,labels=F)]
   })
+  
+  #sp = ddply(data,.(depthc),function(sub)with(sub,data.frame(mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
+  #print(ggplot(sp,aes(x=depthc,y=mean))+geom_point()+geom_line()+geom_errorbar(aes(ymin=mean-se,ymax=mean+se),size=0.3,width=0.3)+labs(x='',y='')+geom_hline(yintercept=0,col='grey',linetype=2))
+  #Figure(
+  #  "Diagnoser.depthResidPlot",
+  #  "Mean and standard error of residuals by depth."
+  #)
+  
   sp = ddply(data,.(depthc,month),function(sub)with(sub,data.frame(mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
-  print(ggplot(sp,aes(x=depthc,y=mean))+geom_point()+geom_line()+geom_errorbar(aes(ymin=mean-se,ymax=mean+se),size=0.3,width=0.3)+labs(x='',y='')+facet_wrap(~month)+geom_hline(yintercept=0,col='grey',linetype=2))
+  print(ggplot(sp,aes(x=depthc,y=mean))+geom_point()+geom_line()+geom_errorbar(aes(ymin=mean-se,ymax=mean+se),size=0.3,width=0.3)+labs(x='Depth (m)',y='Residual')+facet_wrap(~month)+geom_hline(yintercept=0,col='grey',linetype=2))
   Figure(
-    "Diagnoser.depthResidPlot",
-    "Mean and standard error of residuals by depth by month."
+    "Diagnoser.depthMonthResidPlot",
+    "Mean and standard error of residuals by depth and month."
   ) 
+  
+  sp = ddply(data,.(depthc,area),function(sub)with(sub,data.frame(mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
+  print(ggplot(sp,aes(x=depthc,y=mean))+geom_point()+geom_line()+geom_errorbar(aes(ymin=mean-se,ymax=mean+se),size=0.3,width=0.3)+labs(x='Depth (m)',y='Residual')+facet_wrap(~area)+geom_hline(yintercept=0,col='grey',linetype=2))
+  Figure(
+    "Diagnoser.depthAreaResidPlot",
+    "Mean and standard error of residuals by depth and area"
+  )
+  
+  sp = ddply(data,.(depthc,target),function(sub)with(sub,data.frame(mean=mean(residual),se=sd(residual)/sqrt(length(residual)))))
+  print(ggplot(sp,aes(x=depthc,y=mean))+geom_point()+geom_line()+geom_errorbar(aes(ymin=mean-se,ymax=mean+se),size=0.3,width=0.3)+labs(x='Depth (m)',y='Residual')+facet_wrap(~target)+geom_hline(yintercept=0,col='grey',linetype=2))
+  Figure(
+    "Diagnoser.depthTargetResidPlot",
+    "Mean and standard error of residuals by depth and target species."
+  )
+  
 }
 
 Diagnoser$lognormal <- function(.,to){

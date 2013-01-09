@@ -2,6 +2,7 @@ Corer <- Worker$proto(
   label = "Corer",
 
   data = NULL,
+  trips_show = c(3,5,10), #Which trips criterions to show in plot
   trips = NULL, #Minimum number of trips in a year
   years = NULL,  #Minimum number of qualifying years
   catch = NULL, #The minumum catch for a trip to qualify
@@ -9,8 +10,8 @@ Corer <- Worker$proto(
   summary = NULL
 )
 
-Corer$new <- function(.,data,trips=NULL,years=NULL,catch=NULL){
-  inst = .$proto(data=data,trips=trips,years=years,catch=catch)
+Corer$new <- function(.,data,trips_show=c(3,5,10),trips=NULL,years=NULL,catch=NULL){
+  inst = .$proto(data=data,trips_show=trips_show,trips=trips,years=years,catch=catch)
   inst$init()
   inst
 }
@@ -21,11 +22,11 @@ Corer$init <- function(.){
   #Calculate trips per year per vessel
   temp = aggregate(list(trips=data$trip),list(vessel=data$vessel,fyear=data$fyear),function(trip)length(unique(trip)))
   #Calculate numbers of vessels and catch using alternative qualification criteria
-  vesselsList = list()
+  .$vesselsList = list()
   .$combinations = ddply(expand.grid(trips=1:10,years=1:20),.(trips,years),function(sub){
     vessels = subset(ddply(subset(temp,trips>=sub$trips),.(vessel),function(subsub)data.frame(years=nrow(subsub))),years>=sub$years)$vessel
     catch = sum(subset(.$data,vessel %in% vessels)$catch,na.rm=T)
-    vesselsList[[paste(sub$trips,sub$years)]] <<- vessels
+    .$vesselsList[[paste(sub$trips,sub$years)]] <<- vessels
     data.frame(catch=catch,vessels=length(vessels))
   })
   #Calculate catch as a proportion
@@ -38,24 +39,21 @@ Corer$init <- function(.){
     .$years = as.numeric(readline("Enter minimum number of qualifying years (years with minimumm number of trips) per vessel"))
   }
   #Determine qualifying vessels
-  .$vessels = vesselsList[[paste(.$trips,.$years)]]
+  .$vessels = .$vesselsList[[paste(.$trips,.$years)]]
   #Subset data accordingly
   .$data = subset(.$data,vessel %in% .$vessels)
   #Create a summary
   .$summary = ddply(.$data,.(fyear),function(sub) data.frame(
-    strata=nrow(sub),
     vessels=length(unique(sub$vessel)),
     trips=length(unique(sub$trip)),
-    catch=sum(sub$catch,na.rm=T)/1000,
-    effort_number=sum(sub$num,na.rm=T),
-    effort_duration=sum(sub$duration,na.rm=T),
-    percent_zero=sum(sub$catch<=0,na.rm=T)/nrow(sub)*100,
+    strata=nrow(sub),
     events=sum(sub$events,na.rm=T),
     events_per_strata = sum(sub$events,na.rm=T)/nrow(sub),
-    strata_pos = sum(sub$catch>0,na.rm=T),
-    trips_pos = length(unique(subset(sub,catch>0)$trip)),
-    effort_number_pos = sum(subset(sub,catch>0)$num,na.rm=T),
-    effort_duration_pos = sum(subset(sub,catch>0)$duration,na.rm=T)
+    effort_number=sum(sub$num,na.rm=T),
+    effort_duration=sum(sub$duration,na.rm=T),
+    catch=sum(sub$catch,na.rm=T)/1000,
+    trips_pos = length(unique(subset(sub,catch>0)$trip))/length(unique(sub$trip))*100,
+    strata_pos = sum(sub$catch>0,na.rm=T)/nrow(sub)*100
   ))
   #Dump data to file
   write.csv(.$data,file='Corer.Data.csv',row.names=F)
@@ -64,7 +62,7 @@ Corer$init <- function(.){
 Corer$combinationsPlot = function(.){
   #Separate method because called in do() and in report()
   par(mfrow=c(2,1))
-  with(subset(.$combinations,trips %in% c(3,5,10)),{
+  with(subset(.$combinations,trips %in% .$trips_show),{
     par(mar=c(0,4,4,1))
     plot(catch*100~years,pch=trips,xaxt='n',ylab='Catch (%)',las=1)
     legend('topright',legend=unique(trips),pch=unique(trips),bty='n',title='Trips')
@@ -81,7 +79,7 @@ Corer$report <- function(.){
     Alternative core vessel selection criteria were investigated by considering the reduction in the number of vessels and percentage of catch (@Corer.Selection). 
     The most appropriate combination of criteria was considered to be to define the core fleet as those vessels that had fished for at least ',.$trips, ' trips in each of at least ',.$years,' years. 
   ')
-  if(!is.null(.$catch)) Html('To quality, trips were required to have recorded at least ',.$catch,'kg of catch.')
+  if(!is.null(.$catch)) Html('To qualify, trips were required to have recorded at least ',.$catch,'kg of catch.')
   Html('
     These criteria resulted in a core fleet size of ',chosen$vessels,' vessels which took ',round(chosen$catch*100),'% of the catch (@Corer.Selection). 
     A histogram of the number of years in which each core vessel had data in the dataset is provided (@Corer.Histogram) as is the overlap of data among core vessels (@Corer.Bubble).
@@ -110,20 +108,20 @@ Corer$report <- function(.){
   vesselRange = vesselRange[with(vesselRange,order(end,begin)),]
   vesselTrips$vessel = factor(vesselTrips$vessel,levels=vesselRange$vessel,ordered=T)
   p = ggplot(vesselTrips,aes(x=fyear,y=factor(vessel))) + 
-    geom_point(aes(size=trips),shape=1) + scale_area('Trips',to=c(0,10))  + labs(x='Fishing year',y='Vessel')
+    geom_point(aes(size=trips),shape=1) + scale_area('Trips',range=c(0,10))  + labs(x='Fishing year',y='Vessel')
   print(p)
   Figure(
     'Corer.Bubble',
     'Number of trips by fishing year for core vessels. Area of circles is proportional to the proportion of records over all fishing years and vessels.'
   )
 
+  .$summary$fyear = as.character(.$summary$fyear) #Prevents 'commaring'
   Table(
     .$summary,
     label = 'Corer.Summary',
     caption = 'Summary of core vessel data by fishing year.',
-    header = c('Fishing year','Strata','Vessels','Trips','Catch (t)','Effort num','Effort duration (hrs)',
-      'Zero catch<br>(landed,% records)','Events','Events per stratum','Strata (+ve)','Trips (+ve)',
-      'Effort num (+ve)','Effort duration (+ve)'
+    header = c('Fishing year','Vessels','Trips','Strata','Events','Events per stratum','Effort (num)','Effort(hrs)',
+               'Catch (t)','Trips with catch (%)','Strata with catch (%)'
     )
   )
 }

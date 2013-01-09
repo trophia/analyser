@@ -1,5 +1,6 @@
 report = NULL
 reportTag = NULL
+reportPrefix = ""
 reportTables = 0
 reportFigures = 0
 reportHeadings = c(0,0,0,0,0,0,0)
@@ -9,7 +10,7 @@ Html <- function(...) cat(...,file=report,sep='')
 HeadingGen <- function(level,text) {
   reportHeadings[level] <<- reportHeadings[level] + 1
   reportHeadings[(level+1):7] <<- 0
-  cat('<h',level,'>',paste(reportHeadings[1:level],collapse='.'),'. ',text,'</h',level,'>\n',sep='',file=report)
+  cat('<h',level,'>',reportPrefix,paste(reportHeadings[1:level],collapse='.'),'. ',text,'</h',level,'>\n',sep='',file=report)
 }
 Heading1 <- function(text) HeadingGen(1,text)
 Heading2 <- function(text) HeadingGen(2,text)
@@ -26,7 +27,7 @@ Paragraph <- function(...) {
 Table <- function(data,label,caption="",header=names(data)){
     reportTables <<- reportTables + 1
 
-    cat("<div class='table'><p class='caption'><a id='",label,"'>Table ",reportTables,"</a>: ",caption,"</p>\n<table>",sep='',file=report)
+    cat("<div class='table'><p class='caption'><a id='",label,"'>Table ",reportPrefix,reportTables,"</a>: ",caption,"</p>\n<table>",sep='',file=report)
     #Output header
     cat("<tr>",paste("<th class='",c('left',rep('right',length(header)-1)),"'>",header,"</th>",sep='',collapse=''),"</tr>\n",file=report)
     #Format each column based on data type
@@ -64,13 +65,14 @@ Figure <- function(label,caption){
   dev.copy2pdf(file=pdfFilename,pointsize=10)
   #Write
   dims = round(par("din")*2.54,1)
-  cat("<div class='figure'><img src='",pngFilename,"' style='width:",dims[1],"cm; height:",dims[2],"cm'>\n","<p class='caption'><a id='",label,"'>Figure ",reportFigures,"</a>: ",caption,"</p></div>\n",sep='',file=report)
+  cat("<div class='figure'><img src='",pngFilename,"' style='width:",dims[1],"cm; height:",dims[2],"cm'>\n","<p class='caption'><a id='",label,"'>Figure ",reportPrefix,reportFigures,"</a>: ",caption,"</p></div>\n",sep='',file=report)
 }
 
-ReportStart <- function(tag,head=NULL){
+ReportStart <- function(tag,prefix="",head=NULL){
     
   report <<- file(paste(tag,'.html',sep=''),'w')
   reportTag <<- tag
+  reportPrefix <<- prefix
   reportTables <<- 0
   reportFigures <<- 0
   reportHeadings <<- c(0,0,0,0,0,0,0)
@@ -160,8 +162,7 @@ ReportWGCover = function(wg,title=NULL,authors=NULL,date=NULL){
   Html('
   <p class="warn2">
     This draft report is not for publication or release in any other form,
-    unless specifically authorised in writing by the Ministry of
-    Agriculture and Forestry (MAF).
+    unless specifically authorised in writing by the authors and the Ministry of Primary Industries (MPI).
   </p>
   <p class="warn3">
     Working Group papers are works in progress whose role is to facilitate
@@ -172,7 +173,7 @@ ReportWGCover = function(wg,title=NULL,authors=NULL,date=NULL){
     release information contained in Working Group papers to external
     media. In general, Working Group papers should never be cited.
     Exceptions may be made in rare instances by obtaining permission in
-    writing from the MAF Chief Scientist and the authors of the paper.
+    writing from the MPI Chief Scientist and the authors of the paper.
   </p>')
   Html('</div>')
 }

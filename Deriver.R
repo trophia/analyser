@@ -21,10 +21,15 @@ Deriver$init <- function(.){
     utc = as.POSIXct(date,tz="UTC")-12*60*60 #Convert NZ time to UTC (aka GMT)
     phase = (as.numeric(utc-newmoon) %% period)/period
     phase[!is.na(phase) & phase<0] = 1+phase[!is.na(phase) & phase<0]
+    phase
   }
   .$data = within(.$data,{
     distance = duration * speed
-    moon = moonPhase(date)    
+    moon = moonPhase(date) 
+    #Recode vessel to obfuscate vessel_key
+    vessel = as.integer(factor(vessel))
+    #Area x month combination for easy incorporation of area:month interactions
+    areaMonth = paste(area,month,sep=":")
   })
   #Run custom function
   if(!is.null(.$func)) .$data = within(.$data,eval(.$func))

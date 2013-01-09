@@ -6,6 +6,7 @@ for(file in c(
   'Loader.R',
   'Adder.R',
   'Deriver.R',
+  'Polygoner.R',
   'Subsetter.R',
   'Combiner.R',
   'Aggregater.R',

@@ -10,4 +10,6 @@ A R package for analysis of New Zealand fisheries catch and effort data. There i
 
 ### History
 
-`analyser` was initially developed in 2008 and became part of the "Tanga" family of tools used by [Trophia](http://www.trophia.com) for analyses of catch and effort data, (the other tools being `tangaviewer` and `tangagroomer`). It has been used extensively by some Trophia associates but has not had any major development since 2012. In May 2016, `tangaanalyser` was renamed `analyser`, switched from [Mercurial](http://mercurial.selenic.com/) to [Git](http://git-scm.com), and open sourced under the [GPLv3 licence](LICENCE.txt). At that time we began a complete rewrite of the code to make use of modern R packages. The original code has been retained for posterity in the `legacy` branch and is borrowed from where appropriate.
+`analyser` was initially developed in 2008 and became part of the "Tanga" family of tools used by [Trophia](http://www.trophia.com) for analyses of catch and effort data, (the other tools being `tangaviewer` and `tangagroomer`). It has been used extensively by some Trophia associates but has not had any major development since 2012.
+
+In May 2016, `tangaanalyser` was renamed `analyser`, switched from [Mercurial](http://mercurial.selenic.com/) to [Git](http://git-scm.com), and open sourced under the [GPLv3 licence](LICENCE.txt). At that time we began a complete rewrite of the code to make use of modern R packages. The original code has been retained for posterity in the `legacy` branch and is borrowed from where appropriate.

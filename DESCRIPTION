@@ -1,0 +1,8 @@
+Package: analyser
+Title: Tools for analysis of New Zealand fisheries catch and effort data
+Version: 0.0.0.9000
+Authors@R: person("Nokome", "Bentley", email = "nokome@trophia.com", role = c("aut", "cre"))
+Description: A R package for analysis of New Zealand fisheries catch and effort data. There is nothing particularly sophisticated here; it just helps streamline the workflow for taking data, analysing it and presenting the results.
+Depends: R (>= 3.2.2)
+License: GPLv3
+LazyData: true

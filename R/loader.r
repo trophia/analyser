@@ -84,19 +84,12 @@ Loader <- function(file, extras){
         if((!'catch' %in% names(data))|(!'effort' %in% names(data))) {
             stop(simpleError("An expression for both catch and effort must be defined"))
         }
-
-        #Create summary
-        summary <<- data %>% group_by(fyear) %>% summarise(
-            vessels=length(unique(vessel)),
-            trips=length(unique(trip)),
-            events=sum(events),
-            effort_number=sum(num,na.rm=T),
-            effort_duration=sum(duration,na.rm=T),
-            cpueno=sum(cpueno,na.rm=T),
-            catch=sum(catch,na.rm=T),
-            catch_positive=round(sum(catch>0,na.rm=T)/length(catch)*100,2)
-        )
+        
     })()
+    
+    fyear_summary <- function(){
+      shared_fyear_summary(data)
+    }
 
     environment()
 }

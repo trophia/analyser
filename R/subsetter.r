@@ -15,18 +15,11 @@ Subsetter <- function(data, criteria, size=NULL){
 
         # Sample to size if specified
         if(!is.null(size)) data <<- data[sample(1:nrow(data),min(nrow(data),size)),]
-
-        #Create summary
-        summary <<- data %>% group_by(fyear) %>% summarise(
-            vessels=length(unique(vessel)),
-            trips=length(unique(trip)),
-            events=sum(events),
-            effort_number=sum(num,na.rm=T),
-            effort_duration=sum(duration,na.rm=T),
-            catch=sum(catch/1000,na.rm=T),
-            catch_positive=round(sum(catch>0,na.rm=T)/length(catch)*100,2)
-        )
     })()
+    
+    fyear_summary <- function(){
+      shared_fyear_summary(data)
+    }
 
     environment()
 }

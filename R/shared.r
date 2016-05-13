@@ -1,3 +1,5 @@
+library(dplyr)
+
 shared_fyear_summary <- function(data){
   data %>% group_by(fyear) %>% summarise(
     vessels=length(unique(vessel)),

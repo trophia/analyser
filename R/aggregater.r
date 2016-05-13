@@ -1,8 +1,10 @@
 library(dplyr)
 
 #' Aggregate data
-Aggregater <- function(data,by){
+Aggregater <- function(data_in,by){
 
+    data <- NULL
+    
     (function(){
         summaries <- list()
         
@@ -23,7 +25,7 @@ Aggregater <- function(data,by){
           summaries[[var]] <- formula(paste0('~mean(',var,')'))
         }
 
-        data <<- data %>% group_by_(.dots=by) %>% summarise_(.dots=summaries)
+        data <<- data_in %>% group_by_(.dots=by) %>% summarise_(.dots=summaries)
 
     })()
   

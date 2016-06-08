@@ -58,9 +58,10 @@ Aggregater <- function(data_in,by){
         geom_point(aes(y=trips_positive,colour='Trips',shape='Trips')) + geom_line(aes(y=trips_positive,colour='Trips')) + 
         ylim(0,NA) + 
         scale_shape_manual(values=1:3) +
-        labs(x='Fishing year', y='Percentage with positive catch',shape='',colour='')
+        labs(x='Fishing year', y='Percentage with positive catch',shape='',colour='') +
+        theme(legend.position='top')
 
-      grid.arrange(plot1, plot2)
+      grid.arrange(plot1, plot2, heights = c(0.4, 0.6))
     }
 
     #' Strata plot examine alternative stratum defintions

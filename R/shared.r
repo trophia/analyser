@@ -13,8 +13,8 @@ shared_fyear_summary <- function(data){
 p2 <- data %>% group_by(fyear, trip) %>% summarise('positive' = ifelse(sum(catch) > 0, 1, 0)) %>%
       group_by(fyear) %>% summarise('Trips caught' = (sum(positive) / n_distinct(trip)) * 100)
       
-p3 <- data %>% group_by(fyear, events) %>% summarise('positive' = ifelse(sum(catch) > 0, 1, 0)) %>%
-      group_by(fyear) %>% summarise('Events caught' = (sum(positive) / n_distinct(events)) * 100)
+p3 <- data %>% group_by(fyear, trip, date) %>% summarise('positive' = ifelse(sum(catch) > 0, 1, 0)) %>%
+      group_by(fyear) %>% summarise('Events caught' = (sum(positive) / sum(events)) * 100)
 
 bind_cols(p1, p2[ , 2], p3[ , 2])
 }

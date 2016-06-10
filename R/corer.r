@@ -9,7 +9,7 @@ library(ggplot2)
 #' @param years_levels Levels of qualifying years to summarise across
 #' @param trips Qualifying trips per year for selection
 #' @param years Qualifying years for selection
-Corer <- function(data, catch_min=1, trips_min=3, years_min=3){
+Corer <- function(data_in, catch_min=1, trips_min=3, years_min=3){
   
   vessel_years_trips <- NULL
   vessels <- NULL
@@ -17,7 +17,7 @@ Corer <- function(data, catch_min=1, trips_min=3, years_min=3){
   (function(){
     # Summary of qualifying trips by year for each vessel
     # Saved because reused in summary plots and tables
-    vessel_years_trips <<- data %>% 
+    vessel_years_trips <<- data_in %>% 
       filter(catch>=catch_min) %>% 
       group_by(vessel,fyear) %>% 
       summarise(trips=length(unique(trip)))
@@ -31,7 +31,7 @@ Corer <- function(data, catch_min=1, trips_min=3, years_min=3){
     )$vessel
     
     # Core vessel data
-    data <<- data %>% filter(vessel %in% vessels)
+    data <<- data_in %>% filter(vessel %in% vessels)
     
   })()
   
@@ -40,7 +40,7 @@ Corer <- function(data, catch_min=1, trips_min=3, years_min=3){
   }
   
   criteria_plot <- function(trips_levels=c(1,3,5,10), years_levels=1:10){
-    # Lists of vessels that meet certain criteria
+    # Lists of vessels that meet each combination of criteria
     qualify <- function(.){
       trips_ <- max(.$trips)
       years_ <- max(.$years)
@@ -54,6 +54,25 @@ Corer <- function(data, catch_min=1, trips_min=3, years_min=3){
     criteria_vessels <- expand.grid(trips_min=trips_levels, years_min=years_levels) %>%
       group_by(trips_min, years_min) %>%
       do(vessels=qualify(.))
+    # Calculate number of vessels and catch for each combination
+    criteria_vessels <- criteria_vessels %>% bind_cols(
+      criteria_vessels %>%
+        do(data.frame(
+          num = nrow(.$vessels),
+          catch = sum(data_in$catch[data_in$vessel %in% .$vessels$vessel])
+        ))
+    )
+    # Normalise catches
+    criteria_vessels <- within(criteria_vessels, {
+      catch <- catch / sum(data_in$catch) * 100
+    })
+    # Plot it
+    plot_base <- ggplot(criteria_vessels,aes(x=years_min,colour=factor(trips_min),shape=factor(trips_min))) + 
+      scale_shape_manual(values=1:10) +
+      labs(x='Minimum year', colour='Minimum trips', shape='Minimum trips')
+    plot1 <- plot_base + geom_point(aes(y=catch),size=2,alpha=0.7) + labs(x='', y='Percentage of catch') + theme(legend.position='top')
+    plot2 <- plot_base + geom_point(aes(y=num),size=2,alpha=0.7) + labs(y='Number of vessels') + theme(legend.position='none')
+    grid.arrange(plot1, plot2, heights = c(0.6, 0.5))
   }
   
   bubble_plot <- function(){

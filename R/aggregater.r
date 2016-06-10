@@ -1,5 +1,3 @@
-library(dplyr)
-
 #' Aggregate data
 Aggregater <- function(data_in,by){
 

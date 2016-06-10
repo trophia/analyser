@@ -6,3 +6,4 @@ Description: A R package for analysis of New Zealand fisheries catch and effort 
 Depends: R (>= 3.2.2)
 License: GPLv3
 LazyData: true
+Imports: dplyr, tidyr, ggplot2, gridExtra, MASS, influ

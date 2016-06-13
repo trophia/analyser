@@ -103,7 +103,7 @@ Aggregater <- function(data_in,by){
         geom_point() + geom_line() +
         ylim(0,NA) +
         labs(x='Fishing year', y='Mean effort units per stratum',color='Stratum definition',shape='Stratum definition') +
-        theme(legend.position='top')
+        theme(legend.position='top', legend.title = element_text(size = 6), legend.text = element_text(size = 6))
 
       plot2 <- ggplot(temp_all, aes(x=fyear, y=catch, color=combo, shape=combo)) +
         geom_point() + geom_line() + 

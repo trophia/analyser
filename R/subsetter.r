@@ -1,5 +1,3 @@
-library(dplyr)
-
 #' Subset data
 Subsetter <- function(data, criteria, size=NULL){
 

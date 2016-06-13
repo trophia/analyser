@@ -1,5 +1,3 @@
-library(dplyr)
-
 #' Loads catch and effort data, adds derived variables and summarises
 #' Includes functionality of both legacy `Loader.R` and legacy `Deriver.R`
 Loader <- function(file, extras){

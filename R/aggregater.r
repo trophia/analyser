@@ -34,7 +34,7 @@ Aggregater <- function(data_in,by){
     #' Rollup plots summarise the degree of 'rolling up' done by aggreagation
     #' and may indicate reporting behaviour in terms of events by strata (as defined)
     #' and catches by strata (compared to by events and trips)
-    rollup_plot <- function(){
+    rollup_plots <- function(){
       temp1 <- data_in %>% group_by(fyear) %>% summarise(
         events_positive = length(unique(event[catch>0]))/length(unique(event))*100
       )
@@ -45,25 +45,27 @@ Aggregater <- function(data_in,by){
       )
       temp <- left_join(temp1, temp2)
 
-      plot1 <- ggplot(temp,aes(x=fyear,y=events_per_stratum)) +
+      plot_events <- ggplot(temp,aes(x=fyear,y=events_per_stratum)) +
         geom_point() + geom_line() + 
         ylim(0,NA) + 
         labs(x='Fishing year', y='Events per stratum')
 
-      plot2 <- ggplot(temp,aes(x=fyear)) +
+      plot_catch <- ggplot(temp,aes(x=fyear)) +
         geom_point(aes(y=events_positive,colour='Events',shape='Events')) + geom_line(aes(y=events_positive,colour='Events')) + 
         geom_point(aes(y=strata_positive,colour='Strata',shape='Strata')) + geom_line(aes(y=strata_positive,colour='Strata')) + 
         geom_point(aes(y=trips_positive,colour='Trips',shape='Trips')) + geom_line(aes(y=trips_positive,colour='Trips')) + 
         ylim(0,NA) + 
         scale_shape_manual(values=1:3) +
-        labs(x='Fishing year', y='Percentage with positive catch',shape='',colour='') +
-        theme(legend.position='top')
+        labs(x='Fishing year', y='Percentage with positive catch',shape='',colour='')
 
-      grid.arrange(plot1, plot2, heights = c(0.4, 0.6))
+      list(
+        events = plot_events,
+        catch = plot_catch
+      )
     }
 
     #' Strata plot examine alternative stratum defintions
-    strata_plot <- function(){
+    strata_plots <- function(){
 
       # Determine which combinations of factors to use as potential
       # strata definitions
@@ -99,19 +101,21 @@ Aggregater <- function(data_in,by){
         temp_all <- bind_rows(temp_all,temp)
       }
 
-      plot1 <- ggplot(temp_all, aes(x=fyear, y=effort, color=combo, shape=combo)) +
+      plot_effort <- ggplot(temp_all, aes(x=fyear, y=effort, color=combo, shape=combo)) +
         geom_point() + geom_line() +
         ylim(0,NA) +
         labs(x='Fishing year', y='Mean effort units per stratum',color='Stratum definition',shape='Stratum definition') +
         theme(legend.position='top', legend.title = element_text(size = 6), legend.text = element_text(size = 6))
 
-      plot2 <- ggplot(temp_all, aes(x=fyear, y=catch, color=combo, shape=combo)) +
+      plot_catch <- ggplot(temp_all, aes(x=fyear, y=catch, color=combo, shape=combo)) +
         geom_point() + geom_line() + 
         ylim(0,NA) +
-        labs(x='Fishing year', y='Strata with catch (%)') +
-        theme(legend.position='none')
+        labs(x='Fishing year', y='Strata with catch (%)')
 
-      grid.arrange(plot1, plot2, heights = c(0.6, 0.4))
+      list(
+        effort = plot_effort,
+        catch = plot_catch
+      )
 
     }
 

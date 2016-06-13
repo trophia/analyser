@@ -37,7 +37,7 @@ Corer <- function(data_in, catch_min=1, trips_min=3, years_min=3){
     shared_fyear_summary(data)
   }
   
-  criteria_plot <- function(trips_levels=c(1,3,5,10), years_levels=1:10){
+  criteria_plots <- function(trips_levels=c(1,3,5,10), years_levels=1:10){
     # Lists of vessels that meet each combination of criteria
     qualify <- function(.){
       trips_ <- max(.$trips)
@@ -69,13 +69,16 @@ Corer <- function(data_in, catch_min=1, trips_min=3, years_min=3){
       scale_shape_manual(values=1:10) +
       labs(x='Minimum year', colour='Minimum trips', shape='Minimum trips')
 
-    plot1 <- plot_base + geom_point(aes(y=catch),size=2,alpha=0.7) + 
-      ylim(0,NA) + labs(x='', y='Percentage of catch') + theme(legend.position='top')
+    plot_catch <- plot_base + geom_point(aes(y=catch),size=2,alpha=0.7) + 
+      ylim(0,NA) + labs(y='Percentage of catch')
 
-    plot2 <- plot_base + geom_point(aes(y=num),size=2,alpha=0.7) +
-      ylim(0,NA) + labs(y='Number of vessels') + theme(legend.position='none')
+    plot_vessels <- plot_base + geom_point(aes(y=num),size=2,alpha=0.7) +
+      ylim(0,NA) + labs(y='Number of vessels')
 
-    grid.arrange(plot1, plot2, heights = c(0.6, 0.5))
+    list(
+      catch = catch,
+      vessels = vessels
+    )
   }
   
   bubble_plot <- function(){
@@ -93,7 +96,7 @@ Corer <- function(data_in, catch_min=1, trips_min=3, years_min=3){
       theme(axis.text.y=element_text(size=0))
   }
 
-  cpue_plot <- function(){
+  cpue_plots <- function(){
     temp <- bind_rows(
       data_in %>%
         mutate(
@@ -117,21 +120,24 @@ Corer <- function(data_in, catch_min=1, trips_min=3, years_min=3){
         )
     )
 
-    plot1 <- ggplot(temp, aes(x=fyear, y=caught, colour=vessels, shape=vessels)) +
+    plot_prob <- ggplot(temp, aes(x=fyear, y=caught, colour=vessels, shape=vessels)) +
       geom_point(aes(size=num)) + geom_line() +
       scale_size_area() +
       ylim(0,NA) + 
       scale_shape_manual(values=1:3) +
-      labs(x='', y='Catch probability (proportion catch>0)', colour='', shape='', size='Strata')
+      labs(x='Fishing year', y='Catch probability (proportion catch>0)', colour='', shape='', size='Strata')
 
-    plot2 <- ggplot(temp, aes(x=fyear, y=rate, colour=vessels, shape=vessels)) +
+    plot_mag <- ggplot(temp, aes(x=fyear, y=rate, colour=vessels, shape=vessels)) +
       geom_point(aes(size=num)) + geom_line() +
       scale_size_area() +
       ylim(0,NA) +
       scale_shape_manual(values=1:3) +
       labs(x='Fishing year', y='Catch magnitude (kg per effort unit)', colour='', shape='', size='Strata')
 
-    grid.arrange(plot1, plot2, heights = c(0.5, 0.5))
+    list(
+      prob = plot_prob,
+      mag = plot_mag
+    )
   }
   
   environment()

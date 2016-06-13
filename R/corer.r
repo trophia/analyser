@@ -46,8 +46,7 @@ Corer <- function(data_in, catch_min=1, trips_min=3, years_min=3){
         filter(trips>=trips_) %>% 
         group_by(vessel) %>%
         summarise(years=length(fyear)) %>%
-        filter(years>=years_) %>%
-        select(vessel)
+        filter(years>=years_)
     }
     criteria_vessels <- expand.grid(trips_min=trips_levels, years_min=years_levels) %>%
       group_by(trips_min, years_min) %>%

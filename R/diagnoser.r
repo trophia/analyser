@@ -235,24 +235,28 @@ Diagnoser <- function(model, data=NULL) {
   
   position_plot <- function(thresh=30) {
     # Truncated lat/lon (to 0.1 degree) is used in some summaries
-    data %>%
-      mutate()
-      latt <- sign(lat) * (floor(abs(lat)/0.1)*0.1-0.05)
-    lont <- sign(lon) * (floor(abs(lon)/0.1)*0.1+0.05)
-    
-    imp = implieds(bys=c('latt','lont'),fitteds=c('area','areaMonth'))
+    temp <- data %>%
+      mutate(
+        lat_t = sign(lat) * floor(abs(lat)/0.1)*0.1,
+        lon_t = sign(lon) * floor(abs(lon)/0.1)*0.1
+      ) %>%
+      group_by(lat_t,lon_t) %>%
+      summarise(
+        resid = mean(residual),
+        n = length(residual)
+      )
     #Remove cells with a low number of records
-    imp = subset(imp,n>=thresh)
+    temp = subset(temp,n>=thresh)
     #Determine suitable lat and lon ranges
-    imp = subset(imp,latt<(-30) & latt>(-50) & lont>160 & lont<200)
-    latr = quantile(imp$latt,p=c(0.01,0.99),na.rm=T)
+    temp = subset(temp,lat_t<(-30) & lat_t>(-50) & lon_t>160 & lon_t<200)
+    latr = quantile(temp$lat_t,p=c(0.01,0.99),na.rm=T)
     latr = c(latr[1]-0.5,latr[2]+0.5)
-    lonr = quantile(imp$lont,p=c(0.01,0.99),na.rm=T)
+    lonr = quantile(temp$lon_t,p=c(0.01,0.99),na.rm=T)
     lonr = c(lonr[1]-0.5,lonr[2]+0.5)
     #Plot it
-    ggplot(imp,aes(x=lont,y=latt)) + 
+    ggplot(temp,aes(x=lon_t,y=lat_t)) + 
       geom_polygon(data=clipPolys(coast,ylim=latr,xlim=lonr),aes(x=X,y=Y,group=PID),fill='white',colour="grey80") + 
-      geom_tile(aes(fill=mean))+scale_fill_gradient2('Coefficient',low="blue",mid='grey',high="red") + 
+      geom_tile(aes(fill=resid))+scale_fill_gradient2('Coefficient',low="blue",mid='grey',high="red") + 
       scale_y_continuous("",limits=latr,expand=c(0,0)) + 
       scale_x_continuous("",limits=lonr,expand=c(0,0)) +
       labs(x='',y='') + coord_map(project="mercator")

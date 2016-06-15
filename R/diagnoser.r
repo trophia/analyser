@@ -233,33 +233,52 @@ Diagnoser <- function(model, data=NULL) {
     ) 
   }
   
-  position_plot <- function(thresh=30) {
+  #' @param select Selection criteria for data
+  #' @param size Size of cells
+  #' @param box Restrict to lat,lon
+  #' @param thresh Mininimum number of record per grid cell
+  position_plot <- function(select, size=0.1, box, thresh=30) {
+    # Implied coefficients include any terms with a spatial component
+    terms = vector()
+    for(term in c('area','area_month')){
+      if(paste('fit.',term,sep='') %in% names(data)) terms = c(terms,paste('fit.',term,sep=''))
+    }
+    # Do filter
+    if (missing(select)) {
+      temp <- data
+    } else {
+      temp <- data[eval(substitute(select), envir=data),]
+    }
     # Truncated lat/lon (to 0.1 degree) is used in some summaries
-    temp <- data %>%
+    temp <- temp %>%
       mutate(
-        lat_t = sign(lat) * floor(abs(lat)/0.1)*0.1,
-        lon_t = sign(lon) * floor(abs(lon)/0.1)*0.1
+        lat_t = sign(lat) * (floor(abs(lat)/size)+1)*size,
+        lon_t = sign(lon) * floor(abs(lon)/size)*size
       ) %>%
       group_by(lat_t,lon_t) %>%
-      summarise(
-        resid = mean(residual),
-        n = length(residual)
-      )
+      summarise_(.dots=list(
+        n = 'length(residual)',
+        implied = paste('mean(', paste(terms,collapse='+'), ' + residual, na.rm=T)')
+      ))
     #Remove cells with a low number of records
-    temp = subset(temp,n>=thresh)
+    temp <- subset(temp,n>=thresh)
     #Determine suitable lat and lon ranges
-    temp = subset(temp,lat_t<(-30) & lat_t>(-50) & lon_t>160 & lon_t<200)
-    latr = quantile(temp$lat_t,p=c(0.01,0.99),na.rm=T)
-    latr = c(latr[1]-0.5,latr[2]+0.5)
-    lonr = quantile(temp$lon_t,p=c(0.01,0.99),na.rm=T)
-    lonr = c(lonr[1]-0.5,lonr[2]+0.5)
+    if (missing(box)) {
+      temp <- subset(temp,lat_t<(-30) & lat_t>(-50) & lon_t>160 & lon_t<200)
+      latr <- quantile(temp$lat_t,p=c(0.01,0.99),na.rm=T)
+      latr <- c(latr[1]-0.5,latr[2]+0.5)
+      lonr <- quantile(temp$lon_t,p=c(0.01,0.99),na.rm=T)
+      lonr <- c(lonr[1]-0.5,lonr[2]+0.5)
+      box <- c(latr,lonr)
+    }
     #Plot it
-    ggplot(temp,aes(x=lon_t,y=lat_t)) + 
-      geom_polygon(data=clipPolys(coast,ylim=latr,xlim=lonr),aes(x=X,y=Y,group=PID),fill='white',colour="grey80") + 
-      geom_tile(aes(fill=resid))+scale_fill_gradient2('Coefficient',low="blue",mid='grey',high="red") + 
-      scale_y_continuous("",limits=latr,expand=c(0,0)) + 
-      scale_x_continuous("",limits=lonr,expand=c(0,0)) +
-      labs(x='',y='') + coord_map(project="mercator")
+    ggplot(temp,aes(x=lon_t,y=lat_t)) +
+      geom_tile(aes(fill=implied)) +
+      scale_fill_gradient2('Coefficient',low="blue",mid='grey',high="red") +
+      geom_polygon(data=clipPolys(coast,ylim=box[1:2],xlim=box[3:4]),aes(x=X,y=Y,group=PID),fill='white',colour="grey80") +
+      scale_y_continuous("",limits=box[1:2],expand=c(0,0)) +
+      scale_x_continuous("",limits=box[3:4],expand=c(0,0)) +
+      labs(x='',y='') + coord_map(project="mercator") + theme_bw()
   }
   
   posMonthImpliedPlot <- function(.,thresh=30){

@@ -12,7 +12,6 @@ shared_fyear_summary <- function(data){
         'Effort (num)'=sum(num,na.rm=T),
         'Duration (hrs)'= round(sum(duration,na.rm=T),0),
         'Catch (t)'= round(sum(catch,na.rm=T)/1000, 1),
-        'Estimated (t)' = round(sum(SNA_est, na.rm=T)/1000, 1),
         'Catch Positive'= round(sum(catch>0,na.rm=T)/length(catch)*100,2)
     )
     p2 <- data %>% group_by(fyear, trip) %>% summarise('positive' = ifelse(sum(catch) > 0, 1, 0)) %>%

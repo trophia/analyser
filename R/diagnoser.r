@@ -58,7 +58,7 @@ Diagnoser <- function(model, data=NULL) {
   }
 
   residMomentsPlot <- function(.,to){
-    #Plots of std.dev, skewness and kurtosis of residuals by year
+    # Plots of std.dev, skewness and kurtosis of residuals by year
     data = ddply(.$data,.(fyear),function(sub)with(sub,data.frame(
       mean=mean(residual),
       stdev=sd(residual),
@@ -66,6 +66,15 @@ Diagnoser <- function(model, data=NULL) {
       mc=mc(residual),
       kurt=kurtosis(residual)
     )))
+    # data <- .$data %>%
+    #   group_by(fyear) %>%
+    #     summarise(
+    #       mean = mean(residual),
+    #       stdev = sd(residual),
+    #       skew = skewness(residual),
+    #       mc = mc(residual),
+    #       kurt = kurtosis(residual)
+    #       )
     dev.new(width=16/2.54,height=16/2.54)
     par(mfrow=c(4,1),mar=c(0,4,0,0),oma=c(5,1,1,1))
     data$fyear = as.integer(as.character(data$fyear))
@@ -77,6 +86,13 @@ Diagnoser <- function(model, data=NULL) {
       )
       abline(h=switch(var,mean=0,stdev=1,skew=0,mc=0,kurt=3),col='blue',lty=2)
     }
+    # for(var in c('stdev','skew','mc','kurt')) {
+    #   ggplot(data) +
+    #   geom_point(aes(x=fyear, y=var)) +
+    #   geom_line(aes(x=fyear, y=stdev)) +
+    #   labs(x='Fishing Year', y=switch(var,mean='Mean',stdev='Standard deviation',skew='Skewness',mc='Medcouple',kurt='Kurtosis')) +
+    #   geom_hline(yintercept = switch(var,mean=0,stdev=1,skew=0,mc=0,kurt=3),col='blue',lty=2)
+    # }
     # Figure(
     #   "Diagnoser.residMomentsPlot",
     #   "Moments of standardised residuals by fishing year. Blue dotted line indicates the expected value."
@@ -131,7 +147,7 @@ Diagnoser <- function(model, data=NULL) {
       scale_size_area() +
       facet_wrap(~area,scales='free_y') + # Free y-axis in case interaction effects fitted
       labs(x='Fishing year',y='Coefficient',size="Records")
-    dev.new(width=25/2.54,height=17/2.54)
+    # dev.new(width=25/2.54,height=17/2.54)
     print(plot)
     # Figure(
     #   "Diagnoser.areaYearImpliedPlot",
@@ -159,7 +175,7 @@ Diagnoser <- function(model, data=NULL) {
       scale_size_area() +
       facet_wrap(~target,scales='free_y') + # Free y-axis in case interaction effects fitted
       labs(x='Fishing year',y='Coefficient',size="Records")
-    dev.new(width=25/2.54,height=17/2.54)
+    # dev.new(width=25/2.54,height=17/2.54)
     print(plot)
     # Figure(
     #   "Diagnoser.areaYearImpliedPlot",
@@ -189,7 +205,7 @@ Diagnoser <- function(model, data=NULL) {
       facet_wrap(~target,scales='free_y') + # Free y-axis in case interaction effects fitted
       labs(x='Month',y='Coefficient',size="Records") +
       theme(axis.text.x=element_text(angle=90))
-    dev.new(width=25/2.54,height=17/2.54)
+    # dev.new(width=25/2.54,height=17/2.54)
     print(plot)
     # Figure(
     #   "Diagnoser.targetMonthImpliedPlot",
@@ -219,7 +235,7 @@ Diagnoser <- function(model, data=NULL) {
       facet_wrap(~area,scales='free_y') + # Free y-axis in case interaction effects fitted
       labs(x='Month',y='Coefficient',size="Records") +
       theme(axis.text.x=element_text(angle=90))
-    dev.new(width=25/2.54,height=17/2.54)
+    # dev.new(width=25/2.54,height=17/2.54)
     print(plot)
     # Figure(
     #   "Diagnoser.areaMonthImpliedPlot",
@@ -292,7 +308,7 @@ Diagnoser <- function(model, data=NULL) {
     lonr = quantile(imp$lont,p=c(0.01,0.99),na.rm=T)
     lonr = c(lonr[1]-0.5,lonr[2]+0.5)
     #Plot it
-    dev.new(width=18/2.54,height=25/2.54)
+    # dev.new(width=18/2.54,height=25/2.54)
     print (
       ggplot(imp,aes(x=lont,y=latt)) +
         geom_tile(aes(fill=mean))+scale_fill_gradient2('Coefficient',low="blue",mid='grey',high="red") +

@@ -146,7 +146,8 @@ Diagnoser <- function(model, data=NULL) {
       geom_hline(yintercept=0,linetype=3,colour='grey') +
       scale_size_area() +
       facet_wrap(~area,scales='free_y') + # Free y-axis in case interaction effects fitted
-      labs(x='Fishing year',y='Coefficient',size="Records")
+      labs(x='Fishing year',y='Coefficient',size="Records") +
+      theme(axis.text.x = element_text(hjust = 0, angle = 90))
     # dev.new(width=25/2.54,height=17/2.54)
     print(plot)
     # Figure(
@@ -174,7 +175,8 @@ Diagnoser <- function(model, data=NULL) {
       geom_hline(yintercept=0,linetype=3,colour='grey') +
       scale_size_area() +
       facet_wrap(~target,scales='free_y') + # Free y-axis in case interaction effects fitted
-      labs(x='Fishing year',y='Coefficient',size="Records")
+      labs(x='Fishing year',y='Coefficient',size="Records")+
+      theme(axis.text.x = element_text(hjust = 0, angle = 90))
     # dev.new(width=25/2.54,height=17/2.54)
     print(plot)
     # Figure(

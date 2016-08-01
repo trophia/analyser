@@ -121,7 +121,7 @@ Diagnoser <- function(model, data=NULL) {
     print(ggplot(imp,aes(x=fyear,y=exp(mean)))+geom_point()+geom_line()+geom_errorbar(aes(ymin=exp(mean-se),ymax=exp(mean+se)),size=0.3,width=0.3)+
             geom_hline(yintercept=1,linetype=3,colour='grey')+geom_line(aes(y=exp(fit)),col='grey')+
             ylim(c(0,max(exp(imp$mean))*1.1))+scale_y_log10()+
-            facet_wrap(as.formula(paste('~',factor)),scales='free_y')+labs(x='Fishing year',y='Coefficient'))
+            facet_wrap(as.formula(paste('~',factor), ncol=2),scales='free_y')+labs(x='Fishing year',y='Coefficient'))
     # Figure(
     #   "Diagnoser.impliedPlot",
     #   paste("Residual implied coefficients for ",factor," x fishing year interactions.
@@ -145,7 +145,7 @@ Diagnoser <- function(model, data=NULL) {
       geom_line(aes(y=fit),col='grey') +
       geom_hline(yintercept=0,linetype=3,colour='grey') +
       scale_size_area() +
-      facet_wrap(~area,scales='free_y') + # Free y-axis in case interaction effects fitted
+      facet_wrap(~area,scales='free_y', ncol=2) + # Free y-axis in case interaction effects fitted
       labs(x='Fishing year',y='Coefficient',size="Records") +
       theme(axis.text.x = element_text(hjust = 0, angle = 90))
     # dev.new(width=25/2.54,height=17/2.54)
@@ -174,7 +174,7 @@ Diagnoser <- function(model, data=NULL) {
       geom_line(aes(y=fit),col='grey') +
       geom_hline(yintercept=0,linetype=3,colour='grey') +
       scale_size_area() +
-      facet_wrap(~target,scales='free_y') + # Free y-axis in case interaction effects fitted
+      facet_wrap(~target,scales='free_y', ncol=2) + # Free y-axis in case interaction effects fitted
       labs(x='Fishing year',y='Coefficient',size="Records")+
       theme(axis.text.x = element_text(hjust = 0, angle = 90))
     # dev.new(width=25/2.54,height=17/2.54)
@@ -204,7 +204,7 @@ Diagnoser <- function(model, data=NULL) {
       geom_hline(yintercept=0,linetype=3,colour='grey') +
       scale_x_continuous(breaks=1:12,labels=levels(imp$month))+
       scale_size_area() +
-      facet_wrap(~target,scales='free_y') + # Free y-axis in case interaction effects fitted
+      facet_wrap(~target,scales='free_y', ncol=2) + # Free y-axis in case interaction effects fitted
       labs(x='Month',y='Coefficient',size="Records") +
       theme(axis.text.x=element_text(angle=90))
     # dev.new(width=25/2.54,height=17/2.54)
@@ -234,7 +234,7 @@ Diagnoser <- function(model, data=NULL) {
       geom_hline(yintercept=0,linetype=3,colour='grey') +
       scale_x_continuous(breaks=1:12,labels=levels(imp$month))+
       scale_size_area() +
-      facet_wrap(~area,scales='free_y') + # Free y-axis in case interaction effects fitted
+      facet_wrap(~area,scales='free_y', ncol=2) + # Free y-axis in case interaction effects fitted
       labs(x='Month',y='Coefficient',size="Records") +
       theme(axis.text.x=element_text(angle=90))
     # dev.new(width=25/2.54,height=17/2.54)
@@ -317,7 +317,7 @@ Diagnoser <- function(model, data=NULL) {
         geom_polygon(data=clipPolys(coast,ylim=latr,xlim=lonr),aes(x=X,y=Y,group=PID),fill='white',colour="grey80") +
         scale_y_continuous("",limits=latr,expand=c(0,0)) +
         scale_x_continuous("",limits=lonr,expand=c(0,0)) +
-        facet_wrap(~month) +
+        facet_wrap(~month, ncol=2) +
         labs(x='',y='') + coord_map(project="mercator")
     )
     # Figure(

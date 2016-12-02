@@ -36,12 +36,12 @@ Aggregater <- function(data_in,by){
     #' and catches by strata (compared to by events and trips)
     rollup_plots <- function(){
       temp1 <- data_in %>% group_by(fyear) %>% summarise(
-        events_positive = length(unique(event[catch>0]))/length(unique(event))*100
+        events_positive = length(unique(event[catch>=1]))/length(unique(event))*100
       )
       temp2 <- data %>% group_by(fyear) %>% summarise(
         events_per_stratum = sum(events)/length(events),
-        strata_positive = sum(catch>0)/length(catch)*100,
-        trips_positive = length(unique(trip[catch>0]))/length(unique(trip))*100
+        strata_positive = sum(catch>=1)/length(catch)*100,
+        trips_positive = length(unique(trip[catch>=1]))/length(unique(trip))*100
       )
       temp <- left_join(temp1, temp2)
 

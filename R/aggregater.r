@@ -97,7 +97,7 @@ Aggregater <- function(data_in,by){
             group_by(fyear) %>%
             summarise(
               effort = mean(effort),
-              catch = mean(catch>0)
+              catch = mean(catch>1)
             )
         temp$combo <- combo
         temp_all <- bind_rows(temp_all,temp)

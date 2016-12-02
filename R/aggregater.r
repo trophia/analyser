@@ -16,7 +16,7 @@ Aggregater <- function(data_in,by){
         }
 
         # Add the usual summaries of continuous variables
-        for(var in c('events','catch','effort','duration','num','num2','total','hooks','netlength')){
+        for(var in c('events','catch','estimated','effort','duration','num','num2','total','hooks','netlength')){
           summaries[[var]] <- formula(paste0('~sum(',var,')'))
         }
         for(var in c('depth','height','width','length','speed','temp','bottom','lat','lon')){

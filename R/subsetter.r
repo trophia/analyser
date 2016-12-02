@@ -14,7 +14,7 @@ Subsetter <- function(data, criteria, size=NULL){
         # Sample to size if specified
         if(!is.null(size)) data <<- data[sample(1:nrow(data),min(nrow(data),size)),]
     })()
-    
+
     fyear_summary <- function(){
       shared_fyear_summary(data)
     }

@@ -40,8 +40,8 @@ Corer <- function(data_in, catch_min=1, trips_min=3, years_min=3){
   criteria_plots <- function(trips_levels=c(1,3,5,10), years_levels=1:10){
     # Lists of vessels that meet each combination of criteria
     qualify <- function(.){
-      trips_ <- max(.$trips)
-      years_ <- max(.$years)
+      trips_ <- max(.$trips_min)
+      years_ <- max(.$years_min)
       vessel_years_trips %>%
         filter(trips>=trips_) %>%
         group_by(vessel) %>%

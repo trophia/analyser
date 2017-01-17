@@ -61,7 +61,7 @@ Corer <- function(data_in, catch_min=1, trips_min=3, years_min=3){
     )
     # Normalise catches
     criteria_vessels <- within(criteria_vessels, {
-      catch <- catch / sum(data_in$catch) * 100
+      catch <- data_in$catch / sum(data_in$catch) * 100
     })
 
     # Plot it

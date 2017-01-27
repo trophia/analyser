@@ -11,7 +11,7 @@ Aggregater <- function(data_in,by){
           ux <- unique(x)
           ux[which.max(tabulate(match(x, ux)))]
         }
-        for(var in c('fyear','month','date','trip','vessel','area','target','area_month', 'zone2')){
+        for(var in c('fyear','month','date','trip','vessel','area','target','area_month', 'zone2', 'landing_name')){
             if(!(var %in% by)) summaries[[var]] <- eval(parse(text=paste0('~mod(',var,')')))
         }
 

@@ -15,10 +15,10 @@ shared_fyear_summary <- function(data){
 #         'Catch Positive'= round(length(catch>0)/length(catch)*100,2)
     )
     p2 <- data %>% group_by(fyear, trip) %>% summarise('positive' = ifelse(sum(catch) > 0, 1, 0)) %>%
-        group_by(fyear) %>% summarise('Trips with catch (landed, %)' = round((sum(positive) / n_distinct(trip)) * 100,2))
+        group_by(fyear) %>% summarise('Trips with catch (landed, \\%)' = round((sum(positive) / n_distinct(trip)) * 100,2))
 
     p3 <- data %>% group_by(fyear, vessel, date) %>% summarise('positive' = ifelse(sum(catch) > 0, 1, 0)) %>%
-        group_by(fyear) %>% summarise('Days with catch (landed, %)' = round((sum(positive) / length(positive)) * 100, 2))
+        group_by(fyear) %>% summarise('Days with catch (landed, \\%)' = round((sum(positive) / length(positive)) * 100, 2))
 
     bind_cols(p1, p2[ , 2], p3[ , 2])
 }

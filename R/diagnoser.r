@@ -8,7 +8,7 @@ Diagnoser <- function(model, data=NULL) {
   type <- class(model)[1]
   if(type=='glm' | type=='negbin'){
     data <- cbind(
-      data,
+      as.data.frame(data),
       observed = data$catch,
       fitted = fitted(model),
       residual = rstandard(model)
@@ -16,7 +16,7 @@ Diagnoser <- function(model, data=NULL) {
   }
   else if(type=='survreg'){
     data <- cbind(
-      data,
+      as.data.frame(data),
       observed = data$catch,
       fitted = predict(model,type='response'),
       residual = residuals(model,type='deviance')

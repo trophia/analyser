@@ -39,21 +39,20 @@ Diagnoser <- function(model, data=NULL) {
   })
 
   diagnostics_plot <- function(.,to){
-    #Usual diagnostic plots
-    dev.new(width=16/2.54,height=16/2.54)
-    par(mfcol=c(2,2),mar=c(4,4,1,1),oma=rep(1,4))
     with(data,{
       xrange = quantile(residual,p=c(0.001,0.999),na.rm=T)
       xrange[1] = min(xrange[1],-4)
       xrange[2] = max(xrange[2],4)
-      bars = hist(residual,probability=T,breaks=100,main="",xlab="Standardised residual",xlim=xrange,bty='o')
-      lines(bars$mids,dnorm(bars$mids),col='blue',lty=2)
-      qqnorm(residual,main="",ylab='Standardised residual sample quantile',xlab='Standardised residual theoretical quantile',xlim=xrange,cex=0.3,pch=16)
-      abline(a=0,b=1,col='blue',lty=2)
-      plot(fitted,residual,log='x',ylab='Standardised residual',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
-      abline(h=0,col='blue',lty=2)
-      plot(fitted,observed,log='xy',ylab='Observed value',xlab='Fitted value',pch=16,col=rgb(0,0,0,0.2))
-      abline(a=0,b=1,col='blue',lty=2)
+      sequ <- seq(round(xrange[1]/0.05)*0.05, round(xrange[2]/0.05)*0.05, 0.1)
+      d1 <- ggplot() + geom_histogram(aes(x=residual, y = ..density..), stat='bin', binwidth=0.1, fill =NA, colour='black') + labs(x='Standardised residual', y='Density') + geom_line(aes(sequ, dnorm(sequ)), lty=3) +
+              xlim(xrange) + stat_function(fun = dnorm, args = list(mean = mean(residual), sd = sd(residual)),lwd = 1, col = 'red')
+      d2 <- ggplot() + geom_point(aes(fitted, residual), cex=0.3) + labs(x='Fitted value', y='Standardised residual') +
+          ylim(xrange) + geom_hline(yintercept=0, lty=3, col='blue') + scale_x_continuous(trans='log10')
+      d3 <- ggplot() + geom_qq(aes(sample=residual), cex=0.3) + labs(x='Standardised residual theoretical quantile', y='Standardised residual sample quantile') +
+            xlim(xrange) + geom_abline(intercept=0, lty=3, col='blue')
+      d4 <- ggplot() + geom_point(aes(fitted, observed), cex=0.3) + labs(x='Fitted value', y='Observed value') +
+            geom_abline(intercept=0, lty=3, col='blue') + scale_x_continuous(trans='log10') + scale_y_continuous(trans='log10')
+      plot_grid(d1, d2, d3, d4, nrow=2)
     })
   }
 

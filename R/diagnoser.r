@@ -45,13 +45,13 @@ Diagnoser <- function(model, data=NULL) {
       xrange[2] = max(xrange[2],4)
       sequ <- seq(round(xrange[1]/0.05)*0.05, round(xrange[2]/0.05)*0.05, 0.1)
       d1 <- ggplot() + geom_histogram(aes(x=residual, y = ..density..), stat='bin', binwidth=0.1, fill =NA, colour='black') + labs(x='Standardised residual', y='Density') + geom_line(aes(sequ, dnorm(sequ)), lty=3) +
-              xlim(xrange) + stat_function(fun = dnorm, args = list(mean = mean(residual), sd = sd(residual)),lwd = 1, col = 'red')
+              xlim(xrange) + stat_function(fun = dnorm, args = list(mean = mean(residual), sd = sd(residual)),lwd = 1, col = 'red') + theme(axis.title=element_text(size=7))
       d2 <- ggplot() + geom_point(aes(fitted, residual), cex=0.3) + labs(x='Fitted value', y='Standardised residual') +
-          ylim(xrange) + geom_hline(yintercept=0, lty=3, col='blue') + scale_x_continuous(trans='log10')
+          ylim(xrange) + geom_hline(yintercept=0, lty=3, col='blue') + scale_x_continuous(trans='log10') + theme(axis.title=element_text(size=7)
       d3 <- ggplot() + geom_qq(aes(sample=residual), cex=0.3) + labs(x='Standardised residual theoretical quantile', y='Standardised residual sample quantile') +
-            xlim(xrange) + geom_abline(intercept=0, lty=3, col='blue')
+            xlim(xrange) + geom_abline(intercept=0, lty=3, col='blue') + theme(axis.title=element_text(size=7)
       d4 <- ggplot() + geom_point(aes(fitted, observed), cex=0.3) + labs(x='Fitted value', y='Observed value') +
-            geom_abline(intercept=0, lty=3, col='blue') + scale_x_continuous(trans='log10') + scale_y_continuous(trans='log10')
+            geom_abline(intercept=0, lty=3, col='blue') + scale_x_continuous(trans='log10') + scale_y_continuous(trans='log10') + theme(axis.title=element_text(size=7)
       plot_grid(d1, d2, d3, d4, nrow=2)
     })
   }
